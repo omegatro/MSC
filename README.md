@@ -27,4 +27,7 @@ MSC project
    - Responsive Cluster visualization intreface (django)
 
 # Implementation notes
-
+  - APIs used
+    - pyzotero
+    - Entrez
+    - sciencedirect
