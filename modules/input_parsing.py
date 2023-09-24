@@ -2,8 +2,12 @@ import argparse
 import sys
 import logging 
 import getpass
+import requests
+import os
+import json
 
 from concurrent.futures import ThreadPoolExecutor
+from .config import BACKUP_PATH
 from pyzotero import zotero
 
 '''
@@ -12,6 +16,8 @@ Development notes
 1. Parsing articles from <format> into python data structures (local storage)
 2. Command-line interface
 3. Connecting to external library to extract data
+    https://biopython.org/docs/1.75/api/Bio.Entrez.html
+    https://www.elsevier.com/solutions/sciencedirect/librarian-resource-center/api
 
 '''
 
@@ -19,7 +25,7 @@ Development notes
 #General configurations
 #######################
 
-logging.basicConfig(level=0)
+logging.basicConfig(level=1)
 
 
 ##########
@@ -113,8 +119,6 @@ class ExternalLibConnector():
     '''
     Toolkit class with methods for connecting and data retrieval from different scientific publication sources.
     '''
-    def __init__(self) -> None:
-        pass
 
     @staticmethod
     def connect_zotero(library_id, library_type, api_key):
@@ -136,12 +140,11 @@ class ExternalLibConnector():
         
 
     @staticmethod
-    def get_items_zotero(zotero_connection, colname_colid_map: dict, subset: list = None) -> list:
+    def get_items_zotero(zotero_connection, colname_colid_map: dict, subset: list = None, max_workers:int=6) -> list:
         '''
         Method to extract all items from all collections in the colname_colid_map
         '''
         result = []
-
         def fetch_collection_items(zotero_connection, collection_id):
             '''Recursively extract items from collection and subcollection'''
             items = zotero_connection.collection_items(collection_id)
@@ -156,42 +159,71 @@ class ExternalLibConnector():
                 items.extend(subcollection_items)
 
             return items
+        
+        backup_check=os.path.isfile(os.path.join(BACKUP_PATH, 'pdf_url_map.json'))
+        if not backup_check:
+            with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                if subset is None:
+                    futures = [executor.submit(fetch_collection_items, zotero_connection, collection_id) for collection_id in colname_colid_map.values()]
+                else:
+                    futures = [executor.submit(fetch_collection_items, zotero_connection, colname_colid_map[n]) for n in subset if n in colname_colid_map]
 
-        with ThreadPoolExecutor() as executor:
-            if subset is None:
-                futures = [executor.submit(fetch_collection_items, zotero_connection, collection_id) for collection_id in colname_colid_map.values()]
-            else:
-                futures = [executor.submit(fetch_collection_items, zotero_connection, colname_colid_map[n]) for n in subset if n in colname_colid_map]
-
-        for future in futures:
-            result+=future.result()
+            for future in futures:
+                result+=future.result()
 
         return result
 
 
     @staticmethod
-    def get_pdfs_zotero(zotero_connection, items:list) -> list:
+    def get_pdf_urls_zotero(items:list, backup:bool=True) -> list:
         '''
         Method to extract unique links to pdf attachments from list of zotero items
         '''
-        pdf_urls = set()
+        backup_check=os.path.isfile(os.path.join(BACKUP_PATH, 'pdf_url_map.json'))
+        if not backup_check:
+            pdf_urls = dict()
+            for item in items:
+                # Check if the item has attachments
+                if 'url' in item['data'] and 'pdf' in item['data']['url']:
+                    if 'filename' in item['data']:
+                        name = item['data']['filename']
+                        if not '.pdf' in name:
+                            name = name + '.pdf'
+                    elif item['data']['title'] not in pdf_urls:
+                        name = f"{item['data']['title']}.pdf"
+                    else:
+                        name = f"{item['data']['url']}.pdf"
+                    pdf_urls[name] = item['data']['url']
+            if backup:
+                with open(os.path.join(BACKUP_PATH, 'pdf_url_map.json'), 'w+') as f:
+                    json.dump(pdf_urls, f, indent=4)
+        else:
+            with open(os.path.join(BACKUP_PATH, 'pdf_url_map.json'), 'r+') as f:
+                pdf_urls = json.load(f)
+        return pdf_urls
+        
 
-        for item in items:
-            # Check if the item has attachments
-            if 'url' in item['data']:
-                pdf_urls.add(item['data']['url'])
-        return list(pdf_urls)
-    
-
-    @staticmethod 
-    def get_html_zotero(zotero_connection, items:list) -> list:
+    @staticmethod
+    def download_files(save_path:str, name_url_dict:dict, max_workers:int=6, filters=['sciencedirect.com', 'ncbi.nlm.nih.gov']):
         '''
-        Method to extract unique links to html attachments from list of zotero items
+        Method to download files given list of urls, using requests library
+        filters - databases that only allow API-based downloads
         '''
-        html_urls = set()
+        download_counter = 0
+        def dwnld_file(url, name, save_path):
+            if not os.path.isfile(os.path.join(save_path, name)):
+                response = requests.get(url)
+                if response.status_code == 200:
+                    content = response.content
+                    with open(os.path.join(save_path, name), 'wb') as outfile:
+                        outfile.write(content)
+                    download_counter += 1
+                    logging.info(f'Succesfully downloaded file\nStatus code: {response.status_code}\nURL: {url}\nName:{name}\nLocation: {save_path}')
+                else:
+                    logging.error(f'Failed to download file\nStatus code: {response.status_code}\nURL: {url}\nName:{name}')
+            else:
+                logging.info(f'Skipping download for {url} - file exists in {os.path.join(save_path, name)}')
 
-        for item in items:
-            # Check if the item has attachments
-            if 'url' in item['data']:
-                if not 'pdf' in item['data']['url']: html_urls.add(item['data']['url'])
-        return list(html_urls)
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            [executor.submit(dwnld_file, url, name, save_path) for name, url in name_url_dict.items() if not any([f in url for f in filters])]
+            logging.info(f'Succesfully downloaded {download_counter} files')

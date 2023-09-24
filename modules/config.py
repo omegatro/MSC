@@ -14,10 +14,12 @@ config_vars
 ##############
 #input_parsing
 ##############
+
 argument_dict = {
                 'description':'This is a command-line interface to interact with the MSC project.',
                 'required_arguments':[
                     ['--l','--library_name','Name of the library to parse'],
+                    ['--o','--output_path','Full path to the folder where the downloaded files should be saved'],
                 ],
                 'optional':{
                     'arguments':[
@@ -28,3 +30,8 @@ argument_dict = {
                     ]
                 }
             }
+
+with open('.secrets', 'r+') as f:
+    API_KEY = f.read().strip()
+LIB_ID = 11755354
+BACKUP_PATH = 'C:\\Users\\omegatro\\Desktop\\MSC\\backup'
