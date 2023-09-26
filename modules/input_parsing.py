@@ -8,7 +8,9 @@ import json
 
 from concurrent.futures import ThreadPoolExecutor
 from .config import BACKUP_PATH
+from glob import glob
 from pyzotero import zotero
+from PyPDF2 import PdfReader
 
 '''
 Development notes
@@ -107,9 +109,25 @@ class TextParser():
     '''
     Toolkit class with methods for parsing different textual inputs into python data-structures.
     '''
-    def __init__(self) -> None:
-        pass
+    @staticmethod
+    def read_pdf(path) -> dict:
+        '''
+        Read text from pdf into dict of string
+        mapping page numbers to its string representation.
+        '''
+        reader = PdfReader(path)
+        return {i:reader.pages[i].extract_text() for i in range(len(reader.pages))}
     
+
+    @staticmethod
+    def pdf_generator(folder_path):
+        '''Generator to parse all pdf files from folder_path'''
+        pdf_list = glob(os.path.join(folder_path,'*.pdf'))
+        for path in pdf_list:
+            yield TextParser.read_pdf(path)
+
+        
+
 
 #################################
 #Connecting to reference managers
