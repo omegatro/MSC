@@ -31,3 +31,6 @@ MSC project
     - pyzotero
     - Entrez
     - sciencedirect
+
+# Note to self
+ - Hierarchical Topic modeling -> Hierarchical topics as nodes -> Disambiguation -> Document assignment to nodes based on Model-assigned topic sequence
