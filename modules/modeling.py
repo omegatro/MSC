@@ -3,7 +3,7 @@ import gensim.models
 '''
 Development notes
 '''
-
+  
 #######################
 #General configurations
 #######################
