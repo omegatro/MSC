@@ -16,8 +16,8 @@ def main():
     pdf_gen     = pp.preprocess_generator(tp.pdf_generator(args.o))
     vocab       = pp.gen_vocab(pdf_gen)
     bow_gen     = pp.bow_generator(pp.preprocess_generator(tp.pdf_generator(args.o)), vocab=vocab)
-    lda_model = lda.get_lda_model(corpus=[doc for doc in bow_gen], vocab=vocab, num_topics=3)
-
+    lda_model   = lda.get_lda_model(corpus=[doc for doc in bow_gen], vocab=vocab, num_topics=3)
+    lda_model.save('./models/lda.model')
 
 
 

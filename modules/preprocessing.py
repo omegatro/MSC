@@ -60,12 +60,9 @@ class PreProcessor():
         removes stopwords from the text.
         '''
         stop_words = stopwords.words('english')
-        stop_words.extend(['from', 'subject', 're', 'edu', 'use'])
+        stop_words.extend(['from', 'subject', 're', 'edu', 'use', 'et', 'al', 'pp'])
         full_text = sum(pdf_dict.values(), [])
         return [word for word in full_text if word not in stop_words]
-        # for k in pdf_dict:
-        #     pdf_dict[k] = [word for word in pdf_dict[k] if word not in stop_words]
-        # return pdf_dict
     
 
     @staticmethod
@@ -76,13 +73,13 @@ class PreProcessor():
 
 
     @staticmethod
-    def preprocess_document(pdf_dict, file_number) -> dict:
+    def preprocess_document(pdf_dict, file_number, image_path=r"C:\Users\omegatro\Desktop\MSC\Data\test\wordclouds\\") -> dict:
         '''
         Combining pre-processing into single method for conveniece.
         '''
         pdf_dict = PreProcessor.clear_text_case_punct(pdf_dict)
         pdf_list = PreProcessor.remove_stopwords(pdf_dict)
-        if not os.path.isfile(fr'C:\Users\omegatro\Desktop\MSC\Data\test\wordclouds\{file_number}.png'):
+        if not os.path.isfile(fr'{image_path}{file_number}.png'):
             PreProcessor.plot_wordcloud(pdf_list=pdf_list, file_name=fr'C:\Users\omegatro\Desktop\MSC\Data\test\wordclouds\{file_number}.png')
         return pdf_list
     
@@ -111,9 +108,6 @@ class PreProcessor():
         returns bag-of-words in a form of a list of tuples containing index of a word in a document and number of times it appears.
         '''
         return vocab.doc2bow(pdf_list)
-        # full_text = sum(pdf_dict.values(), [])
-        # wc_dict = {wd:full_text.count(wd) for wd in vocab}
-        # return [(i,wc_dict[wd]) for i, wd in enumerate(full_text)]
 
 
     @staticmethod
