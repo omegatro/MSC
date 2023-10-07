@@ -2,6 +2,7 @@ from modules.input_parsing import CMDInterface as cmdi, ExternalLibConnector as 
 from modules.config import argument_dict, API_KEY, LIB_ID
 from modules.preprocessing import PreProcessor as pp
 from modules.modeling import LatentDirichletAllocation as lda
+import os
 
 
 def main():
@@ -16,8 +17,13 @@ def main():
     pdf_gen     = pp.preprocess_generator(tp.pdf_generator(args.o))
     vocab       = pp.gen_vocab(pdf_gen)
     bow_gen     = pp.bow_generator(pp.preprocess_generator(tp.pdf_generator(args.o)), vocab=vocab)
-    lda_model   = lda.get_lda_model(corpus=[doc for doc in bow_gen], vocab=vocab, num_topics=3)
-    lda_model.save('./models/lda.model')
+    corpus      = [doc for doc in bow_gen]
+    if not os.path.isfile('./models/lda.model'):
+        lda_model   = lda.get_lda_model(corpus=corpus, vocab=vocab, num_topics=3)
+        lda_model.save('./models/lda.model')
+    else:
+        lda_model = lda.load_lda_model('./models/lda.model')
+    lda.visualize_lda_model(model=lda_model, corpus = corpus, vocab=vocab)
 
 
 
