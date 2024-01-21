@@ -7,10 +7,10 @@ import os
 import json
 
 from concurrent.futures import ThreadPoolExecutor
-from .config import BACKUP_PATH
+from .config import BACKUP_PATH, host_filters
 from glob import glob
 from pyzotero import zotero
-from PyPDF2 import PdfReader
+from PyPDF2 import PdfReader, errors as pdf_errors
 
 '''
 Development notes
@@ -115,8 +115,12 @@ class TextParser():
         Read text from pdf into dict of string
         mapping page numbers to its string representation.
         '''
-        reader = PdfReader(path)
-        return {i:reader.pages[i].extract_text() for i in range(len(reader.pages))}
+        try:
+            reader = PdfReader(path)
+            return {i:reader.pages[i].extract_text() for i in range(len(reader.pages))}
+        except Exception as e:
+            logging.error(f'Failed to read presumed pdf file: {path} - {e}')
+            return 
     
 
     @staticmethod
@@ -124,7 +128,8 @@ class TextParser():
         '''Generator to parse all pdf files from folder_path'''
         pdf_list = glob(os.path.join(folder_path,'*.pdf'))
         for path in pdf_list:
-            yield TextParser.read_pdf(path)
+            pdf = TextParser.read_pdf(path)
+            if pdf is not None: yield pdf
 
         
 
@@ -162,45 +167,41 @@ class ExternalLibConnector():
         """
 
         # Fetch all collections at once
-        all_collections = zotero_connection.everything(zotero_connection.collections())
-        collection_dict = {c['data']['key']: c for c in all_collections}
-        parent_to_children = {c['data']['key']: [] for c in all_collections}
-        for c in all_collections:
-            parent_id = c['data'].get('parentCollection')
-            if parent_id:
-                parent_to_children[parent_id].append(c['data']['key'])
+        backup_check=os.path.isfile(os.path.join(BACKUP_PATH, f'{collection_name}.json'))
+        if not backup_check:
+            all_collections = zotero_connection.everything(zotero_connection.collections())
+            collection_dict = {c['data']['key']: c for c in all_collections}
+            parent_to_children = {c['data']['key']: [] for c in all_collections}
+            for c in all_collections:
+                parent_id = c['data'].get('parentCollection')
+                if parent_id:
+                    parent_to_children[parent_id].append(c['data']['key'])
 
-        def map_collections(collection_id=None, current_depth=0):
-            if depth >= 0 and current_depth > depth:
-                return {}
+            def map_collections(collection_id=None, current_depth=0):
+                if depth >= 0 and current_depth > depth:
+                    return {}
 
-            collections_map = {}
-            children = parent_to_children.get(collection_id, [])
-            for child_id in children:
-                child = collection_dict[child_id]
-                collections_map[child['data']['name']] = child['data']['key']
-                # Recursively map subcollections
-                collections_map.update(map_collections(child['data']['key'], current_depth + 1))
+                collections_map = {}
+                children = parent_to_children.get(collection_id, [])
+                for child_id in children:
+                    child = collection_dict[child_id]
+                    collections_map[child['data']['name']] = child['data']['key']
+                    # Recursively map subcollections
+                    collections_map.update(map_collections(child['data']['key'], current_depth + 1))
 
-            return collections_map
+                return collections_map
 
-        if collection_name:
-            # Find the target collection by name
-            target_collection = next((c for c in all_collections if c['data']['name'] == collection_name), None)
-            if not target_collection:
-                raise ValueError(f"Collection named '{collection_name}' not found.")
-            return map_collections(target_collection['data']['key'], 0)
-        else:
-            # Map all collections if no specific collection name is given
-            return map_collections()
+            if collection_name:
+                # Find the target collection by name
+                target_collection = next((c for c in all_collections if c['data']['name'] == collection_name), None)
+                if not target_collection:
+                    raise ValueError(f"Collection named '{collection_name}' not found.")
+                return map_collections(target_collection['data']['key'], 0)
+            else:
+                # Map all collections if no specific collection name is given
+                return map_collections()
+        return None
 
-        
-
-        # def map_colname_colid_zotero(zotero_connection):
-        #     '''Returns map of collection names to collection ids, including all subcollections.'''
-        #     col = zotero_connection.collections()
-        #     return {c['data']['name']:c['data']['key'] for c in col}
-        
 
     @staticmethod
     def get_items_zotero(zotero_connection, colname_colid_map: dict, max_workers:int=6) -> list:
@@ -222,17 +223,15 @@ class ExternalLibConnector():
                 items.extend(subcollection_items)
 
             return items
-        
-        backup_check=os.path.isfile(os.path.join(BACKUP_PATH, 'pdf_url_map.json'))
-        if not backup_check:
+
+        if not colname_colid_map is None:
             with ThreadPoolExecutor(max_workers=max_workers) as executor:
                 futures = [executor.submit(fetch_collection_items, zotero_connection, collection_id) for collection_id in colname_colid_map.values()]
 
             for future in futures:
                 result+=future.result()
 
-        return result
-
+            return result
 
     @staticmethod
     def get_pdf_urls_zotero(items:list, backup:bool=True, col_name:str="pdf_url_map") -> list:
@@ -264,7 +263,7 @@ class ExternalLibConnector():
         
 
     @staticmethod
-    def download_files(save_path:str, name_url_dict:dict, max_workers:int=6, filters=['sciencedirect.com', 'ncbi.nlm.nih.gov', 'cell.com', 'annualreviews.org', 'academic.oup.com', 'cancertreatmentreviews.com']):
+    def download_files(save_path:str, name_url_dict:dict, max_workers:int=6, filters=host_filters):
         '''
         Method to download files given list of urls, using requests library
         filters - databases that only allow API-based downloads
@@ -273,18 +272,25 @@ class ExternalLibConnector():
         download_counter = 0
         def dwnld_file(url, name, save_path):
             if not os.path.isfile(os.path.join(save_path, name)):
-                response = requests.get(url)
-                if response.status_code == 200:
-                    content = response.content
-                    with open(os.path.join(save_path, name), 'wb') as outfile:
-                        outfile.write(content)
-                    download_counter += 1
-                    logging.info(f'Succesfully downloaded file - status code: {response.status_code}\nURL: {url}\nName:{name}\nLocation: {save_path}')
+                filter_scan = [f in url for f in filters]
+                if not any(filter_scan):
+                    logging.info('scan ok')
+                    response = requests.get(url)
+                    if response.status_code == 200:
+                        content = response.content
+                        with open(os.path.join(save_path, name), 'wb') as outfile:
+                                outfile.write(content)
+                        download_counter += 1
+                        logging.info(f'Succesfully downloaded file - status code: {response.status_code}\nURL: {url}\nName:{name}\nLocation: {save_path}')
+                    else:
+                        logging.error(f'Failed to download file - status code: {response.status_code}\nURL: {url}\nName:{name}')
                 else:
-                    logging.error(f'Failed to download file - status code: {response.status_code}\nURL: {url}\nName:{name}')
+                    for i, _ in enumerate(filter_scan):
+                        if filter_scan[i]:
+                            logging.info(f'Failed to download file - host in filter list: {url} :: {filters[i]}')
             else:
                 logging.info(f'Skipping download for {url} - file exists in {os.path.join(save_path, name)}')
 
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            [executor.submit(dwnld_file, url, name, save_path) for name, url in name_url_dict.items() if not any([f in url for f in filters])]
+            [executor.submit(dwnld_file, url, name, save_path) for name, url in name_url_dict.items()]
             logging.info(f'Succesfully downloaded {download_counter} files')

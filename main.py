@@ -14,6 +14,7 @@ def main():
     args        = interface.parse_arguments(argument_dict)
     zc          = elc.connect_zotero(library_id=LIB_ID, api_key=API_KEY, library_type='user')
     mapping     = elc.map_colname_colid_zotero(zotero_connection=zc, collection_name=args.c, depth=int(args.d))
+    print(mapping)
     items       = elc.get_items_zotero(zc, mapping)
     pdf_url_map = elc.get_pdf_urls_zotero(items, col_name=args.c)
     

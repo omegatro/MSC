@@ -20,7 +20,7 @@ argument_dict = {
                 'required_arguments':[
                     ['--l','--library_name','Name of the library to parse'],
                     ['--o','--output_path','Full path to the folder where the downloaded files should be saved'],
-                    ['--m','--model_nmae','Name of model to name the model files'],
+                    ['--m','--model_name','Name of model to name the model files'],
                 ],
                 'optional':{
                     'arguments':[
@@ -33,6 +33,16 @@ argument_dict = {
                     ]
                 }
             }
+
+#list of hosts that do not allow direct programmatic pdf downloads for open text publications
+host_filters = [
+    'sciencedirect.com', 
+    'ncbi.nlm.nih.gov', 
+    'cell.com', 
+    'annualreviews.org', 
+    'academic.oup.com', 
+    'cancertreatmentreviews.com'
+    ]
 
 with open('.secrets', 'r+') as f:
     API_KEY = f.read().strip()

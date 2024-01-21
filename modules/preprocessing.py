@@ -13,7 +13,6 @@ from wordcloud import WordCloud
 
 '''
 Development notes
-1. Add logging
 '''
 
 #######################
