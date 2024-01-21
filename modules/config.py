@@ -20,10 +20,13 @@ argument_dict = {
                 'required_arguments':[
                     ['--l','--library_name','Name of the library to parse'],
                     ['--o','--output_path','Full path to the folder where the downloaded files should be saved'],
+                    ['--m','--model_nmae','Name of model to name the model files'],
                 ],
                 'optional':{
                     'arguments':[
                         # ['--o1','--first_optional','o1_help message', 'o1_default_value'],
+                        ['--c','--collection_name','Name of the collection to parse', None],
+                        ['--d','--depth','depth to go to in collection, -1 stands for full depth', -1],
                     ],
                     'flags':[
                         # ['--f1','--first_flag','f1_help message'],
