@@ -1,1 +1,7 @@
 .secrets
+Writing/*
+Data/*
+backup/*
+lit_review/*
+models/*
+*__pycache__*
