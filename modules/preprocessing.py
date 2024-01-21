@@ -5,8 +5,11 @@ import concurrent.futures
 import gensim.corpora as corpora
 import os
 
+
+
 from nltk.corpus import stopwords
 from wordcloud import WordCloud
+
 
 '''
 Development notes
@@ -66,21 +69,22 @@ class PreProcessor():
     
 
     @staticmethod
-    def preprocess_generator(pdf_generator):
+    def preprocess_generator(pdf_generator, output_path=None):
         '''Preprocessing wrapper for pdf generator'''
+        os.makedirs(output_path, exist_ok=True)
         for i,file in enumerate(pdf_generator):
-            yield PreProcessor.preprocess_document(file, file_number=i+1)
+            yield PreProcessor.preprocess_document(file, file_number=i+1, image_path=output_path)
 
 
     @staticmethod
-    def preprocess_document(pdf_dict, file_number, image_path=r"C:\Users\omegatro\Desktop\MSC\Data\test\wordclouds\\") -> dict:
+    def preprocess_document(pdf_dict, file_number, image_path=None) -> dict:
         '''
         Combining pre-processing into single method for conveniece.
         '''
         pdf_dict = PreProcessor.clear_text_case_punct(pdf_dict)
         pdf_list = PreProcessor.remove_stopwords(pdf_dict)
-        if not os.path.isfile(fr'{image_path}{file_number}.png'):
-            PreProcessor.plot_wordcloud(pdf_list=pdf_list, file_name=fr'C:\Users\omegatro\Desktop\MSC\Data\test\wordclouds\{file_number}.png')
+        if image_path is not None:
+            PreProcessor.plot_wordcloud(pdf_list=pdf_list, file_name=os.path.join(image_path, str(file_number) + '.png'))
         return pdf_list
     
 

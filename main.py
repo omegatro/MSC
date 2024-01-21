@@ -3,6 +3,9 @@ from modules.config import argument_dict, API_KEY, LIB_ID
 from modules.preprocessing import PreProcessor as pp
 from modules.modeling import LatentDirichletAllocation as lda
 import os
+import warnings
+import matplotlib
+warnings.filterwarnings("ignore", category=matplotlib.MatplotlibDeprecationWarning)
 
 
 def main():
@@ -15,9 +18,9 @@ def main():
     pdf_url_map = elc.get_pdf_urls_zotero(items, col_name=args.c)
     
     elc.download_files(args.o, pdf_url_map)
-    pdf_gen     = pp.preprocess_generator(tp.pdf_generator(args.o))
+    pdf_gen     = pp.preprocess_generator(tp.pdf_generator(args.o), output_path=os.path.join(args.o, 'wordclouds/'))
     vocab       = pp.gen_vocab(pdf_gen)
-    bow_gen     = pp.bow_generator(pp.preprocess_generator(tp.pdf_generator(args.o)), vocab=vocab)
+    bow_gen     = pp.bow_generator(pp.preprocess_generator(tp.pdf_generator(args.o), output_path=os.path.join(args.o, 'wordclouds/')), vocab=vocab)
     corpus      = [doc for doc in bow_gen]
     model_path  = f'./models/{args.m}.model'
     if not os.path.isfile(model_path):
