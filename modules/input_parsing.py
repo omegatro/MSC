@@ -177,26 +177,31 @@ class ExternalLibConnector():
                 if parent_id:
                     parent_to_children[parent_id].append(c['data']['key'])
 
-            def map_collections(collection_id=None, current_depth=0):
-                if depth >= 0 and current_depth > depth:
-                    return {}
+            def map_collections(collection_id=None, current_depth=0, include_self=False):
+                    if depth >= 0 and current_depth > depth:
+                        return {}
 
-                collections_map = {}
-                children = parent_to_children.get(collection_id, [])
-                for child_id in children:
-                    child = collection_dict[child_id]
-                    collections_map[child['data']['name']] = child['data']['key']
-                    # Recursively map subcollections
-                    collections_map.update(map_collections(child['data']['key'], current_depth + 1))
+                    collections_map = {}
+                    if include_self and collection_id is not None:
+                        # Include the current collection itself in the mapping
+                        parent_collection = collection_dict[collection_id]
+                        collections_map[parent_collection['data']['name']] = parent_collection['data']['key']
 
-                return collections_map
+                    children = parent_to_children.get(collection_id, [])
+                    for child_id in children:
+                        child = collection_dict[child_id]
+                        collections_map[child['data']['name']] = child['data']['key']
+                        # Recursively map subcollections
+                        collections_map.update(map_collections(child['data']['key'], current_depth + 1))
+
+                    return collections_map
 
             if collection_name:
-                # Find the target collection by name
-                target_collection = next((c for c in all_collections if c['data']['name'] == collection_name), None)
-                if not target_collection:
-                    raise ValueError(f"Collection named '{collection_name}' not found.")
-                return map_collections(target_collection['data']['key'], 0)
+                    # Find the target collection by name
+                    target_collection = next((c for c in all_collections if c['data']['name'] == collection_name), None)
+                    if not target_collection:
+                        raise ValueError(f"Collection named '{collection_name}' not found.")
+                    return map_collections(target_collection['data']['key'], 0, include_self=True)
             else:
                 # Map all collections if no specific collection name is given
                 return map_collections()
