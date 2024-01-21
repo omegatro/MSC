@@ -151,14 +151,59 @@ class ExternalLibConnector():
     
 
     @staticmethod
-    def map_colname_colid_zotero(zotero_connection):
-        '''Returns map of collection names to collection ids, including all subcollections.'''
-        col = zotero_connection.collections()
-        return {c['data']['name']:c['data']['key'] for c in col}
+    def map_colname_colid_zotero(zotero_connection, collection_name=None, depth=-1):
+        """
+        Returns a map of collection names to collection ids with optimized fetching.
+
+        :param zotero_connection: Pyzotero connection object.
+        :param collection_name: (Optional) Name of a specific collection to map.
+        :param depth: (Optional) Depth of search for subcollections.
+        :return: Dictionary mapping collection names to their ids.
+        """
+
+        # Fetch all collections at once
+        all_collections = zotero_connection.everything(zotero_connection.collections())
+        collection_dict = {c['data']['key']: c for c in all_collections}
+        parent_to_children = {c['data']['key']: [] for c in all_collections}
+        for c in all_collections:
+            parent_id = c['data'].get('parentCollection')
+            if parent_id:
+                parent_to_children[parent_id].append(c['data']['key'])
+
+        def map_collections(collection_id=None, current_depth=0):
+            if depth >= 0 and current_depth > depth:
+                return {}
+
+            collections_map = {}
+            children = parent_to_children.get(collection_id, [])
+            for child_id in children:
+                child = collection_dict[child_id]
+                collections_map[child['data']['name']] = child['data']['key']
+                # Recursively map subcollections
+                collections_map.update(map_collections(child['data']['key'], current_depth + 1))
+
+            return collections_map
+
+        if collection_name:
+            # Find the target collection by name
+            target_collection = next((c for c in all_collections if c['data']['name'] == collection_name), None)
+            if not target_collection:
+                raise ValueError(f"Collection named '{collection_name}' not found.")
+            return map_collections(target_collection['data']['key'], 0)
+        else:
+            # Map all collections if no specific collection name is given
+            return map_collections()
+
+        
+
+        # def map_colname_colid_zotero(zotero_connection):
+        #     '''Returns map of collection names to collection ids, including all subcollections.'''
+        #     col = zotero_connection.collections()
+        #     return {c['data']['name']:c['data']['key'] for c in col}
         
 
     @staticmethod
-    def get_items_zotero(zotero_connection, colname_colid_map: dict, subset: list = None, max_workers:int=6) -> list:
+    def get_items_zotero(zotero_connection, colname_colid_map: dict, max_workers:int=6) -> list:
         '''
         Method to extract all items from all collections in the colname_colid_map
         '''
@@ -181,10 +226,7 @@ class ExternalLibConnector():
         backup_check=os.path.isfile(os.path.join(BACKUP_PATH, 'pdf_url_map.json'))
         if not backup_check:
             with ThreadPoolExecutor(max_workers=max_workers) as executor:
-                if subset is None:
-                    futures = [executor.submit(fetch_collection_items, zotero_connection, collection_id) for collection_id in colname_colid_map.values()]
-                else:
-                    futures = [executor.submit(fetch_collection_items, zotero_connection, colname_colid_map[n]) for n in subset if n in colname_colid_map]
+                futures = [executor.submit(fetch_collection_items, zotero_connection, collection_id) for collection_id in colname_colid_map.values()]
 
             for future in futures:
                 result+=future.result()
@@ -193,11 +235,11 @@ class ExternalLibConnector():
 
 
     @staticmethod
-    def get_pdf_urls_zotero(items:list, backup:bool=True) -> list:
+    def get_pdf_urls_zotero(items:list, backup:bool=True, col_name:str="pdf_url_map") -> list:
         '''
         Method to extract unique links to pdf attachments from list of zotero items
         '''
-        backup_check=os.path.isfile(os.path.join(BACKUP_PATH, 'pdf_url_map.json'))
+        backup_check=os.path.isfile(os.path.join(BACKUP_PATH, f'{col_name}.json'))
         if not backup_check:
             pdf_urls = dict()
             for item in items:
@@ -213,20 +255,21 @@ class ExternalLibConnector():
                         name = f"{item['data']['url']}.pdf"
                     pdf_urls[name] = item['data']['url']
             if backup:
-                with open(os.path.join(BACKUP_PATH, 'pdf_url_map.json'), 'w+') as f:
+                with open(os.path.join(BACKUP_PATH, f'{col_name}.json'), 'w+') as f:
                     json.dump(pdf_urls, f, indent=4)
         else:
-            with open(os.path.join(BACKUP_PATH, 'pdf_url_map.json'), 'r+') as f:
+            with open(os.path.join(BACKUP_PATH, f'{col_name}.json'), 'r+') as f:
                 pdf_urls = json.load(f)
         return pdf_urls
         
 
     @staticmethod
-    def download_files(save_path:str, name_url_dict:dict, max_workers:int=6, filters=['sciencedirect.com', 'ncbi.nlm.nih.gov']):
+    def download_files(save_path:str, name_url_dict:dict, max_workers:int=6, filters=['sciencedirect.com', 'ncbi.nlm.nih.gov', 'cell.com', 'annualreviews.org', 'academic.oup.com', 'cancertreatmentreviews.com']):
         '''
         Method to download files given list of urls, using requests library
         filters - databases that only allow API-based downloads
         '''
+        os.makedirs(save_path, exist_ok=True)
         download_counter = 0
         def dwnld_file(url, name, save_path):
             if not os.path.isfile(os.path.join(save_path, name)):
@@ -236,9 +279,9 @@ class ExternalLibConnector():
                     with open(os.path.join(save_path, name), 'wb') as outfile:
                         outfile.write(content)
                     download_counter += 1
-                    logging.info(f'Succesfully downloaded file\nStatus code: {response.status_code}\nURL: {url}\nName:{name}\nLocation: {save_path}')
+                    logging.info(f'Succesfully downloaded file - status code: {response.status_code}\nURL: {url}\nName:{name}\nLocation: {save_path}')
                 else:
-                    logging.error(f'Failed to download file\nStatus code: {response.status_code}\nURL: {url}\nName:{name}')
+                    logging.error(f'Failed to download file - status code: {response.status_code}\nURL: {url}\nName:{name}')
             else:
                 logging.info(f'Skipping download for {url} - file exists in {os.path.join(save_path, name)}')
 
