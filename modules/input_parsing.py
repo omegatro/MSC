@@ -156,7 +156,7 @@ class ExternalLibConnector():
     
 
     @staticmethod
-    def map_colname_colid_zotero(zotero_connection, collection_name=None, depth=-1):
+    def map_colname_colid_zotero(zotero_connection, collection_name=None, depth=-1, force_run=False):
         """
         Returns a map of collection names to collection ids with optimized fetching.
 
@@ -168,7 +168,7 @@ class ExternalLibConnector():
 
         # Fetch all collections at once
         backup_check=os.path.isfile(os.path.join(BACKUP_PATH, f'{collection_name}.json'))
-        if not backup_check:
+        if not backup_check or force_run:
             all_collections = zotero_connection.everything(zotero_connection.collections())
             collection_dict = {c['data']['key']: c for c in all_collections}
             parent_to_children = {c['data']['key']: [] for c in all_collections}
@@ -234,12 +234,12 @@ class ExternalLibConnector():
             return result
 
     @staticmethod
-    def get_pdf_urls_zotero(items:list, backup:bool=True, col_name:str="pdf_url_map") -> list:
+    def get_pdf_urls_zotero(items:list, backup:bool=True, col_name:str="pdf_url_map", force_run=False) -> list:
         '''
         Method to extract unique links to pdf attachments from list of zotero items
         '''
         backup_check=os.path.isfile(os.path.join(BACKUP_PATH, f'{col_name}.json'))
-        if not backup_check:
+        if not backup_check or force_run:
             pdf_urls = dict()
             for item in items:
                 # Check if the item has attachments
@@ -263,15 +263,15 @@ class ExternalLibConnector():
         
 
     @staticmethod
-    def download_files(save_path:str, name_url_dict:dict, max_workers:int=6, filters=host_filters):
+    def download_files(save_path:str, name_url_dict:dict, max_workers:int=6, filters=host_filters, force_run=False):
         '''
         Method to download files given list of urls, using requests library
         filters - databases that only allow API-based downloads
         '''
         os.makedirs(save_path, exist_ok=True)
         download_counter = 0
-        def dwnld_file(url, name, save_path):
-            if not os.path.isfile(os.path.join(save_path, name)):
+        def dwnld_file(url, name, save_path, force_run=force_run):
+            if not os.path.isfile(os.path.join(save_path, name)) or force_run:
                 filter_scan = [f in url for f in filters]
                 if not any(filter_scan):
                     response = requests.get(url)

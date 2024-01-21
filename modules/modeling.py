@@ -46,3 +46,14 @@ class LatentDirichletAllocation():
             with open(viz_path, 'wb') as f:
                 pickle.dump(LDAvis_prepared, f)
             pyLDAvis.save_html(LDAvis_prepared, os.path.join(output_path,str(model.num_topics) +'.html'))
+
+    
+    @staticmethod
+    def run_default_gensim_lda(corpus:list, vocab, model_path:str, num_topics:int=3, visualize_lda=True, visual_path:str=None):
+        if not os.path.isfile(model_path):
+            lda_model   = LatentDirichletAllocation.get_lda_model(corpus=corpus, vocab=vocab, num_topics=num_topics)
+            lda_model.save(model_path)
+        else:
+            lda_model = LatentDirichletAllocation.load_lda_model(model_path)
+        if visualize_lda:
+            LatentDirichletAllocation.visualize_lda_model(model=lda_model, corpus = corpus, vocab=vocab, output_path=visual_path)
