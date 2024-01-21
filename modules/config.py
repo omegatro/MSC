@@ -41,10 +41,11 @@ argument_dict = {
 host_filters = [
     'sciencedirect.com', 
     'ncbi.nlm.nih.gov', 
-    'cell.com', 
+    'cell.com',
     'annualreviews.org', 
     'academic.oup.com', 
-    'cancertreatmentreviews.com'
+    'cancertreatmentreviews.com',
+    'researchgate.net'
     ]
 
 with open('.secrets', 'r+') as f:
