@@ -274,7 +274,6 @@ class ExternalLibConnector():
             if not os.path.isfile(os.path.join(save_path, name)):
                 filter_scan = [f in url for f in filters]
                 if not any(filter_scan):
-                    logging.info('scan ok')
                     response = requests.get(url)
                     if response.status_code == 200:
                         content = response.content
