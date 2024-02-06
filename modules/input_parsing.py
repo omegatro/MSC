@@ -5,12 +5,14 @@ import getpass
 import requests
 import os
 import json
+import urllib.request as libreq
 
+from io import BytesIO
 from concurrent.futures import ThreadPoolExecutor
 from .config import BACKUP_PATH, host_filters
 from glob import glob
 from pyzotero import zotero
-from PyPDF2 import PdfReader, errors as pdf_errors
+from PyPDF2 import PdfReader, PdfWriter, errors as pdf_errors
 
 '''
 Development notes
@@ -298,3 +300,44 @@ class ExternalLibConnector():
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             [executor.submit(dwnld_file, url, name, save_path) for name, url in name_url_dict.items()]
             logging.info(f'Succesfully downloaded {download_counter} files')
+
+
+####################
+# API access factory 
+####################
+            
+
+
+def download_arxiv(*args, **kwargs):
+    '''
+    url - link to the pdf file to be downloaded
+    save_path - path to the folder where the file should be saved
+    name - name of the resulting pdf file
+
+    Scope: API call wrapper for arXiv
+    '''
+    with libreq.urlopen(kwargs['url']) as url:
+        pdf_bytes = url.read()
+    reader = PdfReader(BytesIO(pdf_bytes))
+    writer = PdfWriter()
+    for page in reader.pages:
+        writer.add_page(page)
+    with open(os.path.join(kwargs['save_path'], kwargs['name']), 'wb') as outfile:
+        writer.write(outfile)
+
+
+def download_(*args, **kwargs):
+    '''API call wrapper for <>'''
+    return
+
+
+def download_(*args, **kwargs):
+    '''API call wrapper for <>'''
+    return
+
+
+def download_(*args, **kwargs):
+    '''API call wrapper for <>'''
+    return
+
+
