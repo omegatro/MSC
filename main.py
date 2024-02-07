@@ -1,5 +1,5 @@
 from modules.input_parsing import CMDInterface as cmdi, ExternalLibConnector as elc, TextParser as tp
-from modules.config import argument_dict, API_KEY, LIB_ID
+from modules.config import argument_dict, API_KEY, LIB_ID, stemming_algorithm, extended_stopword_list
 from modules.preprocessing import PreProcessor as pp
 from modules.modeling import LatentDirichletAllocation as lda
 import os
@@ -18,19 +18,28 @@ def main():
     pdf_url_map = elc.get_pdf_urls_zotero(items, col_name=args.c, force_run=args.fa)
     
     elc.download_files(args.o, pdf_url_map)
-    pdf_gen     = pp.preprocess_generator(tp.pdf_generator(args.o), output_path=os.path.join(args.o, 'wordclouds/'))
-    vocab       = pp.gen_vocab(pdf_gen)
-    bow_gen     = pp.bow_generator(pp.preprocess_generator(tp.pdf_generator(args.o), output_path=os.path.join(args.o, 'wordclouds/')), vocab=vocab)
-    corpus      = [doc for doc in bow_gen]
+    pdf_gen     = pp.preprocess_generator(tp.pdf_generator(args.o), 
+                                          output_path=os.path.join(args.o, 'wordclouds/'), stemming_alg=stemming_algorithm, ext_stopword_list=extended_stopword_list)
+    docs = [doc for doc in pdf_gen]
+    vocab = pp.gen_vocab(docs)
+    bow_gen     = pp.bow_generator(docs, vocab=vocab)
+    corpus      = [bow for bow in bow_gen]
+    for doc in corpus:
+        for token in doc:
+            if token[0] not in vocab: print(token)
+
     if args.mr == 'lda_gensim':
-        lda.run_default_gensim_lda(
-            corpus=corpus,
-            vocab=vocab,
-            model_path= f'./models/{args.m}_{args.mr}_{args.nt}_tpcs.model',
-            num_topics = args.nt,
-            visualize_lda=True,
-            visual_path=os.path.join(args.o,f'{args.m}_{args.mr}_{args.nt}_tpcs')
-            )
+        try: 
+            lda.run_default_gensim_lda(
+                corpus=corpus,
+                vocab=vocab,
+                model_path= f'./models/{args.m}_{args.mr}_{args.nt}_tpcs.model',
+                num_topics = args.nt,
+                visualize_lda=True,
+                visual_path=os.path.join(args.o,f'{args.m}_{args.mr}_{args.nt}_tpcs')
+                )
+        except IndexError:
+            print('Please try to increase the number of expected topics.')
 
     
 
