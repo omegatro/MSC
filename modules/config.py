@@ -39,13 +39,12 @@ argument_dict = {
 
 #list of hosts that do not allow direct programmatic pdf downloads for open text publications
 host_filters = [
-    'sciencedirect.com', 
-    'ncbi.nlm.nih.gov', 
+    'sciencedirect.com',  
     'cell.com',
     'annualreviews.org', 
     'academic.oup.com', 
     'cancertreatmentreviews.com',
-    'researchgate.net'
+    'sciencedirectassets.com'
     ]
 
 with open('.secrets', 'r+') as f:

@@ -18,8 +18,7 @@ from PyPDF2 import PdfReader, PdfWriter, errors as pdf_errors
 Development notes
 
 1. Parsing articles from <format> into python data structures (local storage)
-2. Command-line interface
-3. Connecting to external library to extract data
+2. Connecting to external library to extract data
     https://biopython.org/docs/1.75/api/Bio.Entrez.html
     https://www.elsevier.com/solutions/sciencedirect/librarian-resource-center/api
 
@@ -31,6 +30,55 @@ Development notes
 
 logging.basicConfig(level=1)
 
+
+######################
+# API access functions 
+######################
+            
+def download_arxiv(*args, **kwargs):
+    '''
+    url - link to the pdf file to be downloaded
+    save_path - path to the folder where the file should be saved
+    name - name of the resulting pdf file
+
+    Scope: API call wrapper for arXiv
+    '''
+    with libreq.urlopen(kwargs['url']) as url:
+        pdf_bytes = url.read()
+    reader = PdfReader(BytesIO(pdf_bytes))
+    writer = PdfWriter()
+    for page in reader.pages:
+        writer.add_page(page)
+    with open(os.path.join(kwargs['save_path'], kwargs['name']), 'wb') as outfile:
+        writer.write(outfile)
+
+
+def download_ncbi_researchgate(*args, **kwargs):
+    '''
+    url - link to the pdf file to be downloaded
+    save_path - path to the folder where the file should be saved
+    name - name of the resulting pdf file
+
+    Scope: API call wrapper for ncbi & researchgate'''
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'}
+    response = requests.get(kwargs['url'], headers=headers)
+    with open(os.path.join(kwargs['save_path'], kwargs['name']), 'wb') as outfile:
+        outfile.write(response.content)
+
+
+def download_(*args, **kwargs):
+    '''
+    url - link to the pdf file to be downloaded
+    save_path - path to the folder where the file should be saved
+    name - name of the resulting pdf file
+
+    Scope: API call wrapper for <>'''
+    return
+
+
+def download_(*args, **kwargs):
+    '''API call wrapper for <>'''
+    return
 
 ##########
 #Interface
@@ -281,15 +329,20 @@ class ExternalLibConnector():
             if not os.path.isfile(os.path.join(save_path, name)) or force_run:
                 filter_scan = [f in url for f in filters]
                 if not any(filter_scan):
-                    response = requests.get(url)
-                    if response.status_code == 200:
-                        content = response.content
-                        with open(os.path.join(save_path, name), 'wb') as outfile:
-                                outfile.write(content)
-                        download_counter += 1
-                        logging.info(f'Succesfully downloaded file - status code: {response.status_code}\nURL: {url}\nName:{name}\nLocation: {save_path}')
+                    if 'ncbi.nlm.nih.gov' in url or 'researchgate.net' in url:
+                        download_ncbi_researchgate(url=url, save_path=save_path, name=name)
+                    elif 'arxiv.org' in url:
+                        download_arxiv(url=url, save_path=save_path, name=name)
                     else:
-                        logging.error(f'Failed to download file - status code: {response.status_code}\nURL: {url}\nName:{name}')
+                        response = requests.get(url)
+                        if response.status_code == 200:
+                            content = response.content
+                            with open(os.path.join(save_path, name), 'wb') as outfile:
+                                    outfile.write(content)
+                            download_counter += 1
+                            logging.info(f'Succesfully downloaded file - status code: {response.status_code}\nURL: {url}\nName:{name}\nLocation: {save_path}')
+                        else:
+                            logging.error(f'Failed to download file - status code: {response.status_code}\nURL: {url}\nName:{name}')
                 else:
                     for i, _ in enumerate(filter_scan):
                         if filter_scan[i]:
@@ -302,42 +355,6 @@ class ExternalLibConnector():
             logging.info(f'Succesfully downloaded {download_counter} files')
 
 
-####################
-# API access factory 
-####################
-            
 
-
-def download_arxiv(*args, **kwargs):
-    '''
-    url - link to the pdf file to be downloaded
-    save_path - path to the folder where the file should be saved
-    name - name of the resulting pdf file
-
-    Scope: API call wrapper for arXiv
-    '''
-    with libreq.urlopen(kwargs['url']) as url:
-        pdf_bytes = url.read()
-    reader = PdfReader(BytesIO(pdf_bytes))
-    writer = PdfWriter()
-    for page in reader.pages:
-        writer.add_page(page)
-    with open(os.path.join(kwargs['save_path'], kwargs['name']), 'wb') as outfile:
-        writer.write(outfile)
-
-
-def download_(*args, **kwargs):
-    '''API call wrapper for <>'''
-    return
-
-
-def download_(*args, **kwargs):
-    '''API call wrapper for <>'''
-    return
-
-
-def download_(*args, **kwargs):
-    '''API call wrapper for <>'''
-    return
 
 
