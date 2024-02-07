@@ -51,3 +51,7 @@ with open('.secrets', 'r+') as f:
     API_KEY = f.read().strip()
 LIB_ID = 11755354
 BACKUP_PATH = 'C:\\Users\\omegatro\\Desktop\\MSC\\backup'
+
+#Preprocessing configurations
+stemming_algorithm = 'Porter' #Or Snowball
+extended_stopword_list = ['from', 'subject', 're', 'edu', 'use', 'et', 'al', 'pp']

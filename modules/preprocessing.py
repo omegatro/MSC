@@ -6,7 +6,7 @@ import gensim.corpora as corpora
 import os
 
 
-
+from nltk.stem import *
 from nltk.corpus import stopwords
 from wordcloud import WordCloud
 
@@ -56,56 +56,83 @@ class PreProcessor():
 
     
     @staticmethod
-    def remove_stopwords(pdf_dict:dict) -> list:
+    def stemming(pdf_dict:dict, algorithm:str='Porter') -> dict:
+        '''
+        Given a document, represented as dictionary where page number is mapped to TOKENIZED text,
+        applies stemming to the text with specified algorithm implemented in nltk.
+        '''
+        if algorithm == 'Porter':
+            stemmer = PorterStemmer()
+        elif algorithm == 'Snowball':
+            stemmer = snowball.SnowballStemmer('english')
+        else:
+            return pdf_dict
+        
+        for k in pdf_dict:
+            pdf_dict[k] = [stemmer.stem(wd) for wd in pdf_dict[k]]
+        return [word for word in sum(pdf_dict.values(), [])]
+
+
+    @staticmethod
+    def remove_stopwords(pdf_dict:dict, extended_list:list=[]) -> list:
         '''
         Given a document, represented as dictionary where page number is mapped to text,
         removes stopwords from the text.
         '''
         stop_words = stopwords.words('english')
-        stop_words.extend(['from', 'subject', 're', 'edu', 'use', 'et', 'al', 'pp'])
-        full_text = sum(pdf_dict.values(), [])
-        return [word for word in full_text if word not in stop_words]
+        stop_words.extend(extended_list)
+        for k in pdf_dict:
+            pdf_dict[k] = [wd for wd in pdf_dict[k] if wd not in stop_words]
+        return pdf_dict
+        # full_text = sum(pdf_dict.values(), [])
+        # return [word for word in full_text if word not in stop_words]
     
 
     @staticmethod
-    def preprocess_generator(pdf_generator, output_path=None):
+    def preprocess_generator(pdf_generator, output_path:str=None, stemming_alg:str='Porter', ext_stopword_list:list=[]):
         '''Preprocessing wrapper for pdf generator'''
         os.makedirs(output_path, exist_ok=True)
+        if stemming_alg in ['Porter', 'Snowball']:
+            logging.info(f'Running stemming using {stemming_alg} algorithm.')
+        else:
+            logging.warning(f'Unrecognized value was given for stemming algorithm - {stemming_alg} - stemming will be skipped.')
         for i,file in enumerate(pdf_generator):
-            yield PreProcessor.preprocess_document(file, file_number=i+1, image_path=output_path)
+            yield PreProcessor.preprocess_document(file, file_number=i+1, image_path=output_path, stemming_alg=stemming_alg, ext_stopword_list=ext_stopword_list)
 
 
     @staticmethod
-    def preprocess_document(pdf_dict, file_number, image_path=None) -> dict:
+    def preprocess_document(pdf_dict, file_number, image_path:str=None, stemming_alg:str='Porter', ext_stopword_list:list=[]) -> dict:
         '''
         Combining pre-processing into single method for conveniece.
         '''
         pdf_dict = PreProcessor.clear_text_case_punct(pdf_dict)
-        pdf_list = PreProcessor.remove_stopwords(pdf_dict)
+        pdf_dict = PreProcessor.remove_stopwords(pdf_dict,extended_list=ext_stopword_list)
+        pdf_list = PreProcessor.stemming(pdf_dict, algorithm=stemming_alg)
+
         if image_path is not None:
             PreProcessor.plot_wordcloud(pdf_list=pdf_list, file_name=os.path.join(image_path, str(file_number) + '.png'))
         return pdf_list
     
 
     @staticmethod
-    def gen_vocab(pdf_generator) -> set:
+    def gen_vocab(docs) -> set:
         '''
         Given a generator for documents represented as dictionary where page number is mapped to text,
         returns a set of unique words accross all documents.
         '''
-        id2word = corpora.Dictionary([doc for doc in pdf_generator])
+        id2word = corpora.Dictionary(docs)
         return id2word
 
 
     @staticmethod
-    def bow_generator(pdf_generator, vocab):
+    def bow_generator(docs, vocab):
         '''Generator wrapper to get BOW representation for articles'''
-        for doc in pdf_generator:
+        for doc in docs:
             yield PreProcessor.bag_of_words(doc, vocab)
 
 
     @staticmethod
-    def bag_of_words(pdf_list:dict, vocab:set) -> list:
+    def bag_of_words(pdf_list:list, vocab:set) -> list:
         '''
         Given a document, represented as dictionary where page number is mapped to text,
         returns bag-of-words in a form of a list of tuples containing index of a word in a document and number of times it appears.
