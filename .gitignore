@@ -4,3 +4,5 @@ Data/*
 backup/*
 models/*
 *__pycache__*
+sandboxes/data/*
+sandboxes/bigartm.*
