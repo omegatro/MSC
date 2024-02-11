@@ -101,15 +101,37 @@ class PreProcessor():
 
 
     @staticmethod
+    def save_corpus_to_vw(docs, output_path):
+        '''Saves the entire corpus in Vowpal Wabbit format to a specified file.'''
+        if not os.path.isfile(output_path):
+            with open(output_path, 'w') as vw_file:  # Use 'w' to overwrite or create a new file
+                for idx, doc in enumerate(docs):
+                    # Use the abstracted method to save each document
+                    PreProcessor.save_document_to_vw(vw_file, idx+1, doc)
+
+
+    @staticmethod
+    def save_document_to_vw(vw_file, doc_id, doc):
+        '''Formats and writes a single document's bag of words to the VW format file.'''
+        # Assuming a default label of 1 for simplicity
+        vw_line = f"doc{doc_id}"  # Format the document identifier
+        # Add word-frequency pairs, format as "word:frequency" if frequency > 1, else just "word"
+        for wd in doc:
+            vw_line += f" {wd}"
+        # Write the formatted line to the VW file
+        vw_file.write(vw_line + "\n")
+
+
+    @staticmethod
     def preprocess_document(pdf_dict, file_number, image_path:str=None, stemming_alg:str='Porter', ext_stopword_list:list=[]) -> dict:
         '''
-        Combining pre-processing into single method for conveniece.
+        Combining pre-processing into single method for convenience.
         '''
         pdf_dict = PreProcessor.clear_text_case_punct(pdf_dict)
-        pdf_dict = PreProcessor.remove_stopwords(pdf_dict,extended_list=ext_stopword_list)
+        pdf_dict = PreProcessor.remove_stopwords(pdf_dict, extended_list=ext_stopword_list)
         pdf_list = PreProcessor.stemming(pdf_dict, algorithm=stemming_alg)
 
-        if image_path is not None:
+        if image_path is not None and not os.path.isfile(os.path.join(image_path, str(file_number) + '.png')):
             PreProcessor.plot_wordcloud(pdf_list=pdf_list, file_name=os.path.join(image_path, str(file_number) + '.png'))
         return pdf_list
     

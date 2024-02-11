@@ -50,8 +50,8 @@ host_filters = [
 with open('.secrets', 'r+') as f:
     API_KEY = f.read().strip()
 LIB_ID = 11755354
-BACKUP_PATH = 'C:\\Users\\omegatro\\Desktop\\MSC\\backup'
+BACKUP_PATH = './backup'#'C:\\Users\\omegatro\\Desktop\\MSC\\backup'
 
 #Preprocessing configurations
-stemming_algorithm = 'Porter' #Or Snowball
+stemming_algorithm = None #'Porter' Or Snowball
 extended_stopword_list = ['from', 'subject', 're', 'edu', 'use', 'et', 'al', 'pp']

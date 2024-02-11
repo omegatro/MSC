@@ -24,6 +24,7 @@ def main():
     vocab = pp.gen_vocab(docs)
     bow_gen     = pp.bow_generator(docs, vocab=vocab)
     corpus      = [bow for bow in bow_gen]
+    pp.save_corpus_to_vw(docs=docs, output_path=os.path.join(args.o, f'{args.m}_vw.txt'))
     for doc in corpus:
         for token in doc:
             if token[0] not in vocab: print(token)
