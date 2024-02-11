@@ -6,3 +6,4 @@ models/*
 *__pycache__*
 sandboxes/data/*
 sandboxes/bigartm.*
+sandboxes/.ipynb_checkpoints/*
