@@ -66,7 +66,7 @@ class PreProcessor():
         elif algorithm == 'Snowball':
             stemmer = snowball.SnowballStemmer('english')
         else:
-            return pdf_dict
+            return [word for word in sum(pdf_dict.values(), [])]
         
         for k in pdf_dict:
             pdf_dict[k] = [stemmer.stem(wd) for wd in pdf_dict[k]]
