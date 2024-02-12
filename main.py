@@ -1,5 +1,5 @@
 from modules.input_parsing import CMDInterface as cmdi, ExternalLibConnector as elc, TextParser as tp
-from modules.config import argument_dict, API_KEY, LIB_ID, stemming_algorithm, extended_stopword_list
+from modules.config import argument_dict, API_KEY, LIB_ID, stemming_algorithm, extended_stopword_list, n_gram_value
 from modules.preprocessing import PreProcessor as pp
 from modules.modeling import LatentDirichletAllocation as lda
 import os
@@ -19,7 +19,7 @@ def main():
     
     elc.download_files(args.o, pdf_url_map)
     pdf_gen     = pp.preprocess_generator(tp.pdf_generator(args.o), 
-                                          output_path=os.path.join(args.o, 'wordclouds/'), stemming_alg=stemming_algorithm, ext_stopword_list=extended_stopword_list)
+                                          output_path=os.path.join(args.o, 'wordclouds/'), stemming_alg=stemming_algorithm, ext_stopword_list=extended_stopword_list, n_gram_value=n_gram_value)
     docs = [doc for doc in pdf_gen]
     vocab = pp.gen_vocab(docs)
     bow_gen     = pp.bow_generator(docs, vocab=vocab)

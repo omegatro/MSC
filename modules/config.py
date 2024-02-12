@@ -55,3 +55,4 @@ BACKUP_PATH = './backup'#'C:\\Users\\omegatro\\Desktop\\MSC\\backup'
 #Preprocessing configurations
 stemming_algorithm = None #'Porter' Or Snowball
 extended_stopword_list = ['from', 'subject', 're', 'edu', 'use', 'et', 'al', 'pp']
+n_gram_value = 2

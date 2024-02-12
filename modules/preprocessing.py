@@ -8,6 +8,7 @@ import os
 
 from nltk.stem import *
 from nltk.corpus import stopwords
+from nltk.util import ngrams
 from wordcloud import WordCloud
 
 
@@ -89,7 +90,16 @@ class PreProcessor():
     
 
     @staticmethod
-    def preprocess_generator(pdf_generator, output_path:str=None, stemming_alg:str='Porter', ext_stopword_list:list=[]):
+    def generate_ngrams(pdf_dict:dict, n:int=2) -> dict:
+        if n <=1:
+            return pdf_dict
+        for k in pdf_dict:
+            pdf_dict[k] = ["_".join(ngram) for ngram in ngrams([wd for wd in pdf_dict[k]], n)]
+        return pdf_dict
+
+
+    @staticmethod
+    def preprocess_generator(pdf_generator, output_path:str=None, stemming_alg:str='Porter', ext_stopword_list:list=[], n_gram_value:int=1):
         '''Preprocessing wrapper for pdf generator'''
         os.makedirs(output_path, exist_ok=True)
         if stemming_alg in ['Porter', 'Snowball']:
@@ -97,7 +107,7 @@ class PreProcessor():
         else:
             logging.warning(f'Unrecognized value was given for stemming algorithm - {stemming_alg} - stemming will be skipped.')
         for i,file in enumerate(pdf_generator):
-            yield PreProcessor.preprocess_document(file, file_number=i+1, image_path=output_path, stemming_alg=stemming_alg, ext_stopword_list=ext_stopword_list)
+            yield PreProcessor.preprocess_document(file, file_number=i+1, image_path=output_path, stemming_alg=stemming_alg, ext_stopword_list=ext_stopword_list, n_gram_value=n_gram_value)
 
 
     @staticmethod
@@ -123,12 +133,13 @@ class PreProcessor():
 
 
     @staticmethod
-    def preprocess_document(pdf_dict, file_number, image_path:str=None, stemming_alg:str='Porter', ext_stopword_list:list=[]) -> dict:
+    def preprocess_document(pdf_dict, file_number, image_path:str=None, stemming_alg:str='Porter', ext_stopword_list:list=[], n_gram_value:int=1) -> dict:
         '''
         Combining pre-processing into single method for convenience.
         '''
         pdf_dict = PreProcessor.clear_text_case_punct(pdf_dict)
         pdf_dict = PreProcessor.remove_stopwords(pdf_dict, extended_list=ext_stopword_list)
+        pdf_dict = PreProcessor.generate_ngrams(pdf_dict, n=n_gram_value)
         pdf_list = PreProcessor.stemming(pdf_dict, algorithm=stemming_alg)
 
         if image_path is not None and not os.path.isfile(os.path.join(image_path, str(file_number) + '.png')):
