@@ -67,11 +67,11 @@ class PreProcessor():
         elif algorithm == 'Snowball':
             stemmer = snowball.SnowballStemmer('english')
         else:
-            return [word for word in sum(pdf_dict.values(), [])]
+            return pdf_dict
         
         for k in pdf_dict:
             pdf_dict[k] = [stemmer.stem(wd) for wd in pdf_dict[k]]
-        return [word for word in sum(pdf_dict.values(), [])]
+        return pdf_dict#[word for word in sum(pdf_dict.values(), [])]
 
 
     @staticmethod
@@ -95,7 +95,7 @@ class PreProcessor():
             return pdf_dict
         for k in pdf_dict:
             pdf_dict[k] = ["_".join(ngram) for ngram in ngrams([wd for wd in pdf_dict[k]], n)]
-        return pdf_dict
+        return [word for word in sum(pdf_dict.values(), [])]
 
 
     @staticmethod
@@ -139,8 +139,8 @@ class PreProcessor():
         '''
         pdf_dict = PreProcessor.clear_text_case_punct(pdf_dict)
         pdf_dict = PreProcessor.remove_stopwords(pdf_dict, extended_list=ext_stopword_list)
-        pdf_dict = PreProcessor.generate_ngrams(pdf_dict, n=n_gram_value)
-        pdf_list = PreProcessor.stemming(pdf_dict, algorithm=stemming_alg)
+        pdf_dict = PreProcessor.stemming(pdf_dict, algorithm=stemming_alg)
+        pdf_list = PreProcessor.generate_ngrams(pdf_dict, n=n_gram_value)
 
         if image_path is not None and not os.path.isfile(os.path.join(image_path, str(file_number) + '.png')):
             PreProcessor.plot_wordcloud(pdf_list=pdf_list, file_name=os.path.join(image_path, str(file_number) + '.png'))
