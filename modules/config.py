@@ -32,6 +32,7 @@ argument_dict = {
                     ],
                     'flags':[
                         # ['--f1','--first_flag','f1_help message'],
+                        ['--ul','--use_local', 'Flag to analyze locally-stored copies of publications instead of downloading from links.'],
                         ['--fa','--force_all','Flag to rerun the analysis starting from downloading the collection.'],
                     ]
                 }
@@ -56,3 +57,4 @@ BACKUP_PATH = './backup'#'C:\\Users\\omegatro\\Desktop\\MSC\\backup'
 stemming_algorithm = None #'Porter' Or Snowball
 extended_stopword_list = ['from', 'subject', 're', 'edu', 'use', 'et', 'al', 'pp']
 n_gram_value = 2
+word_cloud_plots = False

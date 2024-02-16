@@ -6,6 +6,8 @@ import requests
 import os
 import json
 import urllib.request as libreq
+import sqlite3
+import shutil
 
 from io import BytesIO
 from concurrent.futures import ThreadPoolExecutor
@@ -14,15 +16,6 @@ from glob import glob
 from pyzotero import zotero
 from PyPDF2 import PdfReader, PdfWriter, errors as pdf_errors
 
-'''
-Development notes
-
-1. Parsing articles from <format> into python data structures (local storage)
-2. Connecting to external library to extract data
-    https://biopython.org/docs/1.75/api/Bio.Entrez.html
-    https://www.elsevier.com/solutions/sciencedirect/librarian-resource-center/api
-
-'''
 
 #######################
 #General configurations
@@ -65,20 +58,6 @@ def download_ncbi_researchgate(*args, **kwargs):
     with open(os.path.join(kwargs['save_path'], kwargs['name']), 'wb') as outfile:
         outfile.write(response.content)
 
-
-def download_(*args, **kwargs):
-    '''
-    url - link to the pdf file to be downloaded
-    save_path - path to the folder where the file should be saved
-    name - name of the resulting pdf file
-
-    Scope: API call wrapper for <>'''
-    return
-
-
-def download_(*args, **kwargs):
-    '''API call wrapper for <>'''
-    return
 
 ##########
 #Interface
@@ -160,16 +139,21 @@ class TextParser():
     Toolkit class with methods for parsing different textual inputs into python data-structures.
     '''
     @staticmethod
-    def read_pdf(path) -> dict:
+    def read_pdf(path, remove_corrupted=True) -> dict:
         '''
         Read text from pdf into dict of string
         mapping page numbers to its string representation.
         '''
         try:
             reader = PdfReader(path)
-            return {i:reader.pages[i].extract_text() for i in range(len(reader.pages))}
+            num_pages = len(reader.pages)
+            file = {'name': path, 'text':{i:reader.pages[i].extract_text() for i in range(num_pages)}}
+            return file
         except Exception as e:
             logging.error(f'Failed to read presumed pdf file: {path} - {e}')
+            if remove_corrupted:
+                logging.info(f'Removing corrupted pdf file - {path}')
+                os.remove(path)
             return 
     
 
@@ -187,6 +171,107 @@ class TextParser():
 #################################
 #Connecting to reference managers
 #################################
+
+class LocalLibConnector():
+    '''
+    Toolkit class with methods for using full text copies from local Zotero storage.
+    '''
+
+    ################
+    #Class variables
+    ################
+    
+    def __init__(self,*args, **kwargs):
+        '''Class variables'''
+        # Local Zotero path
+        user_name = os.path.basename(os.path.expanduser('~'))
+        home_generic = os.path.join(os.path.expanduser('~'),'Zotero')
+        pdf_names = None
+        home_wsl = f'/mnt/c/Users/{user_name}/Zotero'
+        if os.path.isdir(home_generic):
+            self._zotero_home = home_generic
+        else:
+            self._zotero_home = home_wsl
+
+    def connect_to_db(self):
+        db_path = os.path.join(self._zotero_home, 'zotero.sqlite')
+        if not os.path.exists(db_path):
+            print("Database file not found in Zotero directory.")
+            return None
+
+        try:
+            # Connect to the Zotero SQLite database
+            self.conn = sqlite3.connect(db_path)
+            logging.info(f'Successfully connected to {db_path}')
+        except sqlite3.Error as e:
+            print(f"Error connecting to database: {e}")
+            self.conn = None
+
+
+    def query_local_zotero(self, collection_name:str) -> list:
+        '''Sends query to local Zotero sqlite database to get file names for locally available full texts for collection and its subcollections.'''
+        if self.conn is not None:
+            cursor = self.conn.cursor()
+
+            #
+            query = f'''
+                WITH RECURSIVE subcollections(collectionID) AS (
+                SELECT collectionID FROM collections WHERE collectionName = '{collection_name}'
+                UNION ALL
+                SELECT c.collectionID FROM collections c JOIN subcollections sc ON c.parentCollectionID = sc.collectionID
+                )
+                SELECT ia.path AS attachmentKey
+                FROM itemAttachments ia
+                JOIN items i ON ia.parentItemID = i.itemID
+                JOIN collectionItems ci ON i.itemID = ci.itemID
+                WHERE ci.collectionID IN (SELECT collectionID FROM subcollections) AND ia.contentType = 'application/pdf';
+            '''
+            try:
+                cursor.execute(query)
+                items = cursor.fetchall()
+                self.pdf_names = set()
+                for item in items:
+                    try:
+                        if item[0] is not None:
+                            self.pdf_names.add(item[0].replace('storage:',''))
+                    except Exception as e:
+                        logging.error(f'Failed to extract name from {item} - {e}')
+                self.pdf_names = list(self.pdf_names)
+                logging.info(f'Successfully extracted file names for {collection_name}')
+                if len(self.pdf_names) == 0:
+                    raise Exception(f'No documents were detected - aborting analysis - please verify that collection name was provided correctly: {collection_name}')
+            except Exception as e:
+                logging.error(f"Error extracting pdf names: {e}")
+                sys.exit(2)
+                self.pdf_names = None
+            finally:
+                self.conn.close()
+
+
+    def get_local_copies(self, save_path:str):
+        '''Copies locally-stored pdf files to save path.'''
+        if self.pdf_names is None:
+            print('No files to copy.')
+            return
+        else:
+            os.makedirs(save_path, exist_ok=True)
+            storage_path = os.path.join(self._zotero_home, 'storage/*/*.pdf')
+            for path in glob(storage_path):
+                pdf_name = os.path.basename(path)
+                if pdf_name in self.pdf_names:
+                    dest_path = os.path.join(save_path, pdf_name)
+                    print(path, dest_path)
+                    try:
+                        if not os.path.isfile(dest_path):
+                            shutil.copyfile(path, dest_path)
+                            logging.info(f'Successful copy - {path} to {dest_path}')
+                        else:
+                            logging.info(f'Skipping copy - {dest_path} exists')
+                    except Exception as e:
+                        logging.error(f'Failed to copy {pdf_name}: {e}')
+                
+
+
 
 class ExternalLibConnector():
     '''

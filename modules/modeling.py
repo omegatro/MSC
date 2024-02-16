@@ -1,8 +1,12 @@
 import gensim.models
-import pyLDAvis.gensim
 import pickle 
 import pyLDAvis
+import pyLDAvis.gensim
 import os
+import sys
+import logging
+
+
 
 '''
 Development notes
@@ -39,7 +43,11 @@ class LatentDirichletAllocation():
         # # this is a bit time consuming - make the if statement True
         # # if you want to execute visualization prep yourself
         if not os.path.isfile(output_path):
-            LDAvis_prepared = pyLDAvis.gensim.prepare(model, corpus, vocab)
+            try:
+                LDAvis_prepared = pyLDAvis.gensim.prepare(model, corpus, vocab)
+            except Exception as e:
+                logging.error(f'Failed to visualize results for vanilla LDA - {e} - try adjusting number of topics')
+                sys.exit(2)
             viz_path = os.path.abspath(os.path.join(output_path, 'phyloviz'))
             os.makedirs(viz_path,exist_ok=True)
             viz_path= os.path.join(viz_path, 'viz_' + str(model.num_topics) + '.pickle')

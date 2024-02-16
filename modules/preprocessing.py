@@ -5,16 +5,11 @@ import concurrent.futures
 import gensim.corpora as corpora
 import os
 
-
 from nltk.stem import *
 from nltk.corpus import stopwords
 from nltk.util import ngrams
 from wordcloud import WordCloud
 
-
-'''
-Development notes
-'''
 
 #######################
 #General configurations
@@ -71,7 +66,7 @@ class PreProcessor():
         
         for k in pdf_dict:
             pdf_dict[k] = [stemmer.stem(wd) for wd in pdf_dict[k]]
-        return pdf_dict#[word for word in sum(pdf_dict.values(), [])]
+        return pdf_dict
 
 
     @staticmethod
@@ -99,53 +94,28 @@ class PreProcessor():
 
 
     @staticmethod
-    def preprocess_generator(pdf_generator, output_path:str=None, stemming_alg:str='Porter', ext_stopword_list:list=[], n_gram_value:int=1):
-        '''Preprocessing wrapper for pdf generator'''
-        os.makedirs(output_path, exist_ok=True)
-        if stemming_alg in ['Porter', 'Snowball']:
-            logging.info(f'Running stemming using {stemming_alg} algorithm.')
-        else:
-            logging.warning(f'Unrecognized value was given for stemming algorithm - {stemming_alg} - stemming will be skipped.')
-        for i,file in enumerate(pdf_generator):
-            yield PreProcessor.preprocess_document(file, file_number=i+1, image_path=output_path, stemming_alg=stemming_alg, ext_stopword_list=ext_stopword_list, n_gram_value=n_gram_value)
-
-
-    @staticmethod
-    def save_corpus_to_vw(docs, output_path):
+    def save_corpus_to_vw(docs, names, output_path, file_name):
         '''Saves the entire corpus in Vowpal Wabbit format to a specified file.'''
-        if not os.path.isfile(output_path):
-            with open(output_path, 'w') as vw_file:  # Use 'w' to overwrite or create a new file
-                for idx, doc in enumerate(docs):
-                    # Use the abstracted method to save each document
-                    PreProcessor.save_document_to_vw(vw_file, idx+1, doc)
+        logging.info('Saving dataset to Vowpal Wabbit file to be used with BigARTM.')
+        output = os.path.join(output_path, f'{file_name}_vw.txt')
+        with open(output, 'w') as vw_file:  # Use 'w' to overwrite or create a new file
+            for idx, doc in enumerate(docs):
+                # Use the abstracted method to save each document
+                PreProcessor.save_document_to_vw(vw_file, names[idx], doc)
 
 
     @staticmethod
-    def save_document_to_vw(vw_file, doc_id, doc):
+    def save_document_to_vw(vw_file, doc_name, doc):
         '''Formats and writes a single document's bag of words to the VW format file.'''
         # Assuming a default label of 1 for simplicity
-        vw_line = f"doc{doc_id}"  # Format the document identifier
+        vw_line = os.path.basename(doc_name).replace('.pdf', '').replace(' ', '_') # Format the document identifier
         # Add word-frequency pairs, format as "word:frequency" if frequency > 1, else just "word"
-        for wd in doc:
-            vw_line += f" {wd}"
+        if len(doc) > 0:
+            for wd in doc:
+                vw_line += f" {wd}"
         # Write the formatted line to the VW file
         vw_file.write(vw_line + "\n")
 
-
-    @staticmethod
-    def preprocess_document(pdf_dict, file_number, image_path:str=None, stemming_alg:str='Porter', ext_stopword_list:list=[], n_gram_value:int=1) -> dict:
-        '''
-        Combining pre-processing into single method for convenience.
-        '''
-        pdf_dict = PreProcessor.clear_text_case_punct(pdf_dict)
-        pdf_dict = PreProcessor.remove_stopwords(pdf_dict, extended_list=ext_stopword_list)
-        pdf_dict = PreProcessor.stemming(pdf_dict, algorithm=stemming_alg)
-        pdf_list = PreProcessor.generate_ngrams(pdf_dict, n=n_gram_value)
-
-        if image_path is not None and not os.path.isfile(os.path.join(image_path, str(file_number) + '.png')):
-            PreProcessor.plot_wordcloud(pdf_list=pdf_list, file_name=os.path.join(image_path, str(file_number) + '.png'))
-        return pdf_list
-    
 
     @staticmethod
     def gen_vocab(docs) -> set:
@@ -174,14 +144,61 @@ class PreProcessor():
 
 
     @staticmethod
-    def plot_wordcloud(pdf_list:list, file_name:str='test.png') -> None:
+    def plot_wordcloud(pdf_list:list, file_name:str='test') -> None:
         '''
         Given a document, represented as dictionary where page number is mapped to text,
         plots wordcloud showing most frequent word accross the entire dictionary.
-        '''
+        ''' 
+        logging.info(f'Generating wordcloud plot - {file_name}')
         long_string = ','.join(pdf_list)
         wordcloud = WordCloud(background_color="white", max_words=5000, contour_width=3, contour_color='steelblue')
-        # Generate a word cloud
-        wordcloud.generate(long_string)
-        # Visualize the word cloud
-        wordcloud.to_file(file_name)
+        
+        try:
+            # Generate a word cloud
+            if len(long_string) > 0:
+                wordcloud.generate(long_string)
+                # Visualize the word cloud
+                wordcloud.to_file(file_name)
+            else:
+                logging.warning(f'Cannot generate wordcloud plot for {file_name} - no words parsed from document.')
+        except Exception as e:
+            logging.error(f'Failed to generate word cloud for {file_name}')
+
+
+    @staticmethod
+    def preprocess_document(pdf_dict, file_name, image_path:str=None, stemming_alg:str='Porter', ext_stopword_list:list=[], n_gram_value:int=1, wordclouds=False) -> dict:
+        '''
+        Combining pre-processing into single method for convenience.
+        '''
+        pdf_dict = PreProcessor.clear_text_case_punct(pdf_dict)
+        pdf_dict = PreProcessor.remove_stopwords(pdf_dict, extended_list=ext_stopword_list)
+        pdf_dict = PreProcessor.stemming(pdf_dict, algorithm=stemming_alg)
+        pdf_list = PreProcessor.generate_ngrams(pdf_dict, n=n_gram_value)
+
+        fname = str(os.path.basename(file_name).replace('.pdf',''))
+        wordcloud_path = os.path.join(image_path, fname) + '.png'
+        wc_condition = (image_path is not None) and (not os.path.isfile(wordcloud_path)) and wordclouds
+        if wc_condition:
+            PreProcessor.plot_wordcloud(pdf_list=pdf_list, file_name=wordcloud_path)
+        return pdf_list
+
+
+    @staticmethod
+    def preprocess_generator(pdf_generator, output_path:str=None, stemming_alg:str='Porter', ext_stopword_list:list=[], n_gram_value:int=1, wordclouds=False):
+        '''Preprocessing wrapper for pdf generator'''
+        os.makedirs(output_path, exist_ok=True)
+        logging.info('Starting preprocessing.')
+        if stemming_alg in ['Porter', 'Snowball']:
+            logging.info(f'Running stemming using {stemming_alg} algorithm.')
+        else:
+            logging.warning(f'Unrecognized value was given for stemming algorithm - {stemming_alg} - stemming will be skipped.')
+        for file in pdf_generator:
+            yield {'name':file['name'], 'result':PreProcessor.preprocess_document(
+                pdf_dict=file['text'], 
+                file_name=file['name'], 
+                image_path=output_path, 
+                stemming_alg=stemming_alg, 
+                ext_stopword_list=ext_stopword_list, 
+                n_gram_value=n_gram_value,
+                wordclouds=wordclouds
+                )}
