@@ -20,20 +20,21 @@ argument_dict = {
                 'required_arguments':[
                     ['--l','--library_name','Name of the Zotero library to parse.'],
                     ['--o','--output_path','Full path to the folder where the downloaded files should be saved.'],
-                    ['--m','--model_file_name','Name of model to name the files.'],
                 ],
                 'optional':{
                     'arguments':[
-                        # ['--o1','--first_optional','o1_help message', 'o1_default_value'],
                         ['--mr', '--run_model', 'Name of the model to run. Currently only gensim lda supported', 'lda_gensim'],
                         ['--nt', '--num_topics', 'Number of topics to be discovered by the topic model.', 3],
                         ['--c','--collection_name','Name of the collection to parse', None],
                         ['--d','--depth','depth to go to in collection, -1 stands for full depth', -1],
+                        ['--m','--model_file_name','Name of model to name the files.', 'model'],
+                        ['--ng','--nram_len','Length of the n-gram', 1],
                     ],
                     'flags':[
-                        # ['--f1','--first_flag','f1_help message'],
                         ['--ul','--use_local', 'Flag to analyze locally-stored copies of publications instead of downloading from links.'],
                         ['--fa','--force_all','Flag to rerun the analysis starting from downloading the collection.'],
+                        ['--sm','--skip_model','Flag to skip topic modeling'],
+                        ['--wc','--word_clouds','Flag to generate wordcloud plot for each pdf file'],
                     ]
                 }
             }
@@ -56,5 +57,5 @@ BACKUP_PATH = './backup'#'C:\\Users\\omegatro\\Desktop\\MSC\\backup'
 #Preprocessing configurations
 stemming_algorithm = None #'Porter' Or Snowball
 extended_stopword_list = ['from', 'subject', 're', 'edu', 'use', 'et', 'al', 'pp']
-n_gram_value = 2
+n_gram_value = 1
 word_cloud_plots = False

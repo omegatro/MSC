@@ -85,9 +85,9 @@ class PreProcessor():
     
 
     @staticmethod
-    def generate_ngrams(pdf_dict:dict, n:int=2) -> dict:
-        if n <=1:
-            return pdf_dict
+    def generate_ngrams(pdf_dict:dict, n:int=2) -> list:
+        if int(n) <=1:
+            return [word for word in sum(pdf_dict.values(), [])]
         for k in pdf_dict:
             pdf_dict[k] = ["_".join(ngram) for ngram in ngrams([wd for wd in pdf_dict[k]], n)]
         return [word for word in sum(pdf_dict.values(), [])]

@@ -3,7 +3,7 @@ import warnings
 import matplotlib
 
 from modules.input_parsing import CMDInterface as cmdi, ExternalLibConnector as elc, LocalLibConnector as llc, TextParser as tp
-from modules.config import argument_dict, API_KEY, LIB_ID, stemming_algorithm, extended_stopword_list, n_gram_value, word_cloud_plots
+from modules.config import argument_dict, API_KEY, LIB_ID, stemming_algorithm, extended_stopword_list
 from modules.preprocessing import PreProcessor as pp
 from modules.modeling import LatentDirichletAllocation as lda
 warnings.filterwarnings("ignore", category=matplotlib.MatplotlibDeprecationWarning)
@@ -45,8 +45,8 @@ def main():
                                           output_path=os.path.join(args.o, 'wordclouds/'), 
                                           stemming_alg=stemming_algorithm, 
                                           ext_stopword_list=extended_stopword_list,
-                                           n_gram_value=n_gram_value,
-                                           wordclouds=word_cloud_plots
+                                           n_gram_value=int(args.ng),
+                                           wordclouds=args.wc
                                            )
     docs,names = [],[]
     for doc in pdf_gen:
@@ -62,19 +62,21 @@ def main():
         output_path=args.o,
         file_name=args.m
         )
-
-    if args.mr == 'lda_gensim':
-        try: 
-            lda.run_default_gensim_lda(
-                corpus=corpus,
-                vocab=vocab,
-                model_path= f'./models/{args.m}_{args.mr}_{args.nt}_tpcs.model',
-                num_topics = args.nt,
-                visualize_lda=True,
-                visual_path=os.path.join(args.o,f'{args.m}_{args.mr}_{args.nt}_tpcs')
-                )
-        except IndexError:
-            print('Please try to increase the number of expected topics.')
+    if not args.sm:
+        if args.mr == 'lda_gensim':
+            try: 
+                lda.run_default_gensim_lda(
+                    corpus=corpus,
+                    vocab=vocab,
+                    model_path= f'./models/{args.m}_{args.mr}_{args.nt}_tpcs.model',
+                    num_topics = args.nt,
+                    visualize_lda=True,
+                    visual_path=os.path.join(args.o,f'{args.m}_{args.mr}_{args.nt}_tpcs')
+                    )
+            except IndexError:
+                print('Please try to increase the number of expected topics.')
+    else:
+        print('Skipping topic modeling.')
 
     
 
