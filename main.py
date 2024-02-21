@@ -3,7 +3,7 @@ import warnings
 import matplotlib
 
 from modules.input_parsing import CMDInterface as cmdi, ExternalLibConnector as elc, LocalLibConnector as llc, TextParser as tp
-from modules.config import argument_dict, API_KEY, LIB_ID, stemming_algorithm, extended_stopword_list
+from modules.config import argument_dict, API_KEY, LIB_ID, stemming_algorithm, extended_stopword_list, tokenizer_alg
 from modules.preprocessing import PreProcessor as pp
 from modules.modeling import LatentDirichletAllocation as lda
 warnings.filterwarnings("ignore", category=matplotlib.MatplotlibDeprecationWarning)
@@ -46,12 +46,15 @@ def main():
                                           stemming_alg=stemming_algorithm, 
                                           ext_stopword_list=extended_stopword_list,
                                            n_gram_value=int(args.ng),
-                                           wordclouds=args.wc
+                                           wordclouds=args.wc,
+                                           tf_plots=args.tfp,
+                                           tokenizer=tokenizer_alg
                                            )
     docs,names = [],[]
     for doc in pdf_gen:
         docs.append(doc['result'])
         names.append(doc['name'])
+    pp.aggragate_tfs(output_path=args.o, n_gram_value=int(args.ng))
     vocab = pp.gen_vocab(docs)
     bow_gen     = pp.bow_generator(docs, vocab=vocab)
     corpus      = [bow for bow in bow_gen]

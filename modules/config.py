@@ -35,6 +35,7 @@ argument_dict = {
                         ['--fa','--force_all','Flag to rerun the analysis starting from downloading the collection.'],
                         ['--sm','--skip_model','Flag to skip topic modeling'],
                         ['--wc','--word_clouds','Flag to generate wordcloud plot for each pdf file'],
+                        ['--tfp','--tf_plots','Flag to generate term frequency plot for each pdf file'],
                     ]
                 }
             }
@@ -52,10 +53,14 @@ host_filters = [
 with open('.secrets', 'r+') as f:
     API_KEY = f.read().strip()
 LIB_ID = 11755354
-BACKUP_PATH = './backup'#'C:\\Users\\omegatro\\Desktop\\MSC\\backup'
+BACKUP_PATH = './backup'
 
 #Preprocessing configurations
 stemming_algorithm = None #'Porter' Or Snowball
-extended_stopword_list = ['from', 'subject', 're', 'edu', 'use', 'et', 'al', 'pp']
+extended_stopword_list = ['from', 'subject', 'edu', 'etc', 'use','https', 'http','fig','zhang', 'ner', 
+                          'liu', 'lee', 'yang','ing','chen', 'authors', 'journal', 'see', 'org', 'web', 'vol', 'zhou',
+                          'zhao', 'title', 'url', 'cited', 'issue', 'chang', 'page', 'tags', 'zhu', 'crossref','doi', 'nature'
+                          'example', 'ncbi', 'table']
 n_gram_value = 1
 word_cloud_plots = False
+tokenizer_alg = 'nltk'

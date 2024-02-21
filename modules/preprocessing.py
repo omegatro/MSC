@@ -4,12 +4,16 @@ import nltk
 import concurrent.futures
 import gensim.corpora as corpora
 import os
+import pandas as pd
 
+from spacy.tokenizer import Tokenizer
+from spacy.lang.en import English
 from nltk.stem import *
 from nltk.corpus import stopwords
 from nltk.util import ngrams
 from wordcloud import WordCloud
-
+from matplotlib import pyplot as plt
+from glob import glob
 
 #######################
 #General configurations
@@ -40,14 +44,33 @@ class PreProcessor():
 
     
     @staticmethod
-    def clear_text_case_punct(pdf_dict:dict) -> dict:
+    def clear_text_case_punct(pdf_dict:dict, tokenizer:str='nltk') -> dict:
         '''
         Given a document, represented as dictionary where page number is mapped to text,
         removes punctuation and converts all leters to lowercase.
         '''
+
+        def max_dimer_freq(string):
+                '''Dimer frequency scan to detect words made from single character and words of 2 characters'''
+                max_freq = 0
+                for i in range(len(string)-1):
+                    dimer = string[i:i+2]
+                    #counting overlapping dimers
+                    count = len(re.findall(f'(?={dimer})', string))
+                    if count > max_freq:
+                        max_freq = count
+                return round(max_freq/len(string),1)
         for k in pdf_dict:
-            pdf_dict[k] = nltk.word_tokenize(pdf_dict[k])
-            pdf_dict[k] = [word.lower() for word in pdf_dict[k] if word.isalpha()]
+            pdf_dict[k] = re.sub(r'([,.!?])([^\s])', r'\1 \2', pdf_dict[k])
+            pdf_dict[k] = re.sub("\s{2,}", " ", pdf_dict[k])
+            if tokenizer == 'nltk':
+                pdf_dict[k] = nltk.word_tokenize(pdf_dict[k])
+                pdf_dict[k] = [word.lower() for word in pdf_dict[k] if word.isalpha() and max_dimer_freq(word.lower()) < 0.5]
+            elif tokenizer == 'spacy':
+                nlp = English()
+                tokenizer = nlp.tokenizer
+                pdf_dict[k] = tokenizer(pdf_dict[k])
+                pdf_dict[k] = [str(word).lower() for word in pdf_dict[k] if str(word).isalpha() and max_dimer_freq(word.lower()) < 0.5]
         return pdf_dict
 
     
@@ -76,9 +99,9 @@ class PreProcessor():
         removes stopwords from the text.
         '''
         stop_words = stopwords.words('english')
-        stop_words.extend(extended_list)
+        stop_words = set([word.lower() for word in stopwords.words('english')] + [word.lower() for word in extended_list])
         for k in pdf_dict:
-            pdf_dict[k] = [wd for wd in pdf_dict[k] if wd not in stop_words]
+            pdf_dict[k] = [wd for wd in pdf_dict[k] if wd.lower() not in stop_words and len(wd) > 1]
         return pdf_dict
         # full_text = sum(pdf_dict.values(), [])
         # return [word for word in full_text if word not in stop_words]
@@ -149,13 +172,12 @@ class PreProcessor():
         Given a document, represented as dictionary where page number is mapped to text,
         plots wordcloud showing most frequent word accross the entire dictionary.
         ''' 
-        logging.info(f'Generating wordcloud plot - {file_name}')
-        long_string = ','.join(pdf_list)
-        wordcloud = WordCloud(background_color="white", max_words=5000, contour_width=3, contour_color='steelblue')
-        
         try:
             # Generate a word cloud
-            if len(long_string) > 0:
+            logging.info(f'Generating wordcloud plot - {file_name}')
+            if pdf_list:
+                long_string = ','.join(pdf_list)
+                wordcloud = WordCloud(background_color="white", max_words=5000, contour_width=3, contour_color='steelblue')
                 wordcloud.generate(long_string)
                 # Visualize the word cloud
                 wordcloud.to_file(file_name)
@@ -166,25 +188,68 @@ class PreProcessor():
 
 
     @staticmethod
-    def preprocess_document(pdf_dict, file_name, image_path:str=None, stemming_alg:str='Porter', ext_stopword_list:list=[], n_gram_value:int=1, wordclouds=False) -> dict:
+    def plot_tfplot(pdf_list:list=[], pdf_df=None, file_name:str='test', top:int=100, save_pdf:bool=True) -> None:
+        '''
+        Given a document, represented as dictionary where page number is mapped to text,
+        plots wordcloud showing most frequent word accross the entire dictionary.
+        ''' 
+        logging.info(f'Generating term frequency plot - {file_name}')
+        try:
+            if pdf_list and not os.path.isfile(file_name):
+                if not os.path.isfile(file_name):
+                    unique_terms = set(pdf_list)
+                    term_counts = {term:pdf_list.count(term) for term in unique_terms}
+                    df = pd.DataFrame(list(term_counts.items()), columns=['term', 'frequency'])
+                    df = df.sort_values(by='frequency', ascending=False)
+                    if save_pdf: 
+                        df.to_csv(file_name.replace('.png','.csv'), header=True, index=False)
+                    df = df.head(top)
+                    plt.figure(figsize=(20, 45))
+                    plt.barh(width = df.frequency, y=df.term)
+                    plt.xlabel('term')
+                    plt.ylabel('frequency')
+                    plt.xticks(rotation=90)
+                    plt.savefig(file_name, bbox_inches='tight')
+                    plt.close()
+                else:
+                    logging.warning(f'Cannot generate term frequency plot for {file_name} - file already exists.')
+            elif pdf_df is not None:
+                df = pdf_df.head(top)
+                plt.figure(figsize=(45, 11))
+                plt.barh(width = df.frequency, y=df.term)
+                plt.xlabel('term')
+                plt.ylabel('frequency')
+                plt.xticks(rotation=90)
+                plt.savefig(file_name, bbox_inches='tight')
+            else:
+                logging.warning(f'Cannot generate term frequency plot for {file_name} - no words parsed from document.')
+        except Exception as e:
+            logging.error(f'Failed to generate term frequency for {file_name} - {e}')
+        
+
+    @staticmethod
+    def preprocess_document(pdf_dict, file_name, image_path:str=None, stemming_alg:str='Porter', ext_stopword_list:list=[], n_gram_value:int=1, wordclouds=False, tf_plots=False, tokenizer='nltk') -> dict:
         '''
         Combining pre-processing into single method for convenience.
         '''
-        pdf_dict = PreProcessor.clear_text_case_punct(pdf_dict)
+        pdf_dict = PreProcessor.clear_text_case_punct(pdf_dict, tokenizer=tokenizer)
         pdf_dict = PreProcessor.remove_stopwords(pdf_dict, extended_list=ext_stopword_list)
         pdf_dict = PreProcessor.stemming(pdf_dict, algorithm=stemming_alg)
         pdf_list = PreProcessor.generate_ngrams(pdf_dict, n=n_gram_value)
 
         fname = str(os.path.basename(file_name).replace('.pdf',''))
-        wordcloud_path = os.path.join(image_path, fname) + '.png'
+        wordcloud_path = os.path.join(image_path, fname) + f'{n_gram_value}.png'
         wc_condition = (image_path is not None) and (not os.path.isfile(wordcloud_path)) and wordclouds
+        tf_condition = tf_plots
         if wc_condition:
             PreProcessor.plot_wordcloud(pdf_list=pdf_list, file_name=wordcloud_path)
+        elif tf_condition:
+            PreProcessor.plot_tfplot(pdf_list=pdf_list, file_name=wordcloud_path)
         return pdf_list
 
 
     @staticmethod
-    def preprocess_generator(pdf_generator, output_path:str=None, stemming_alg:str='Porter', ext_stopword_list:list=[], n_gram_value:int=1, wordclouds=False):
+    def preprocess_generator(pdf_generator, output_path:str=None, stemming_alg:str='Porter', ext_stopword_list:list=[], n_gram_value:int=1, wordclouds=False, tf_plots=False, tokenizer='nltk'):
         '''Preprocessing wrapper for pdf generator'''
         os.makedirs(output_path, exist_ok=True)
         logging.info('Starting preprocessing.')
@@ -200,5 +265,43 @@ class PreProcessor():
                 stemming_alg=stemming_alg, 
                 ext_stopword_list=ext_stopword_list, 
                 n_gram_value=n_gram_value,
-                wordclouds=wordclouds
+                wordclouds=wordclouds,
+                tf_plots=tf_plots,
+                tokenizer=tokenizer
                 )}
+
+
+    @staticmethod
+    def aggragate_tfs(output_path:str, n_gram_value=1):
+        '''Aggregating term frequencies for all documents in corpus.'''
+        tag = os.path.join(output_path, 'wordclouds/') + f"*{n_gram_value}.csv"
+        total_df = pd.DataFrame()
+        for path in glob(tag):
+            total_df = pd.concat([total_df, pd.read_csv(path)])
+        total_df = total_df.groupby('term').agg('sum').reset_index().sort_values(by='frequency', ascending=False)
+        if n_gram_value == 1:
+            def max_char_freq(string):
+                alphabet = set(string)
+                max_freq = 0
+                for c in alphabet:
+                    freq = string.count(c)
+                    if freq > max_freq:
+                        max_freq = freq
+                return  max_freq
+            
+            def max_dimer_freq(string):
+                '''Dimer frequency scan to detect words made from single character and words of 2 characters'''
+                max_freq = 0
+                for i in range(len(string)-1):
+                    dimer = string[i:i+2]
+                    #counting overlapping dimers
+                    count = len(re.findall(f'(?={dimer})', string))
+
+                    if count > max_freq:
+                        max_freq = count
+                return round(max_freq/len(string),1)
+
+            total_df['token_len'] = total_df['term'].apply(len)
+            total_df['max_char_count'] = total_df['term'].apply(max_char_freq)
+            total_df['max_dimer_freq'] = total_df['term'].apply(max_dimer_freq)
+        total_df.to_csv(os.path.join(output_path,f'corpus_tf_{n_gram_value}.csv'), header=True, index=False)
