@@ -61,6 +61,5 @@ extended_stopword_list = ['from', 'subject', 'edu', 'etc', 'use','https', 'http'
                           'liu', 'lee', 'yang','ing','chen', 'authors', 'journal', 'see', 'org', 'web', 'vol', 'zhou',
                           'zhao', 'title', 'url', 'cited', 'issue', 'chang', 'page', 'tags', 'zhu', 'crossref','doi', 'nature'
                           'example', 'ncbi', 'table']
-n_gram_value = 1
 word_cloud_plots = False
 tokenizer_alg = 'nltk'
