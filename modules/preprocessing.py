@@ -5,7 +5,9 @@ import concurrent.futures
 import gensim.corpora as corpora
 import os
 import pandas as pd
+import itertools
 
+from collections import Counter
 from spacy.tokenizer import Tokenizer
 from spacy.lang.en import English
 from nltk.stem import *
@@ -65,12 +67,12 @@ class PreProcessor():
             pdf_dict[k] = re.sub("\s{2,}", " ", pdf_dict[k])
             if tokenizer == 'nltk':
                 pdf_dict[k] = nltk.word_tokenize(pdf_dict[k])
-                pdf_dict[k] = [word.lower() for word in pdf_dict[k] if word.isalpha() and max_dimer_freq(word.lower()) < 0.5]
+                pdf_dict[k] = [word.lower() for word in pdf_dict[k] if word.isalpha() and max_dimer_freq(word.lower()) < 0.5 and pdf_dict[k].count(word) > 3 and pdf_dict[k].count(word) < 950]
             elif tokenizer == 'spacy':
                 nlp = English()
                 tokenizer = nlp.tokenizer
                 pdf_dict[k] = tokenizer(pdf_dict[k])
-                pdf_dict[k] = [str(word).lower() for word in pdf_dict[k] if str(word).isalpha() and max_dimer_freq(word.lower()) < 0.5]
+                pdf_dict[k] = [str(word).lower() for word in pdf_dict[k] if str(word).isalpha() and max_dimer_freq(word.lower()) < 0.5 and pdf_dict[k].count(word) > 3 and pdf_dict[k].count(word) < 950]
         return pdf_dict
 
     
@@ -139,6 +141,35 @@ class PreProcessor():
         # Write the formatted line to the VW file
         vw_file.write(vw_line + "\n")
 
+    @staticmethod
+    def get_cooc_vocab(docs, vocab, vocab_path, cooc_path, window=10)-> None:
+        '''Generates vocabulary and cooccurence files to use in artm'''
+        with open(vocab_path, 'w') as f:
+            for _, word in vocab.iteritems():
+                f.write(word + '\n')
+        # Initialize a counter to hold co-occurrence counts.
+        co_occurrences = Counter()
+
+        for doc in docs:
+            # Convert document tokens to their respective IDs using the Gensim dictionary.
+            token_ids = [vocab.token2id[token] for token in doc if token in vocab.token2id]
+            
+            # For each token in the document, consider a window of 'window_size' tokens before and after.
+            for i, token_id in enumerate(token_ids):
+                window_start = max(i - window, 0)
+                window_end = min(i + window + 1, len(token_ids))
+                
+                # Count co-occurrences within this window.
+                for cooc_id in token_ids[window_start:window_end]:
+                    # Avoid counting the word with itself.
+                    if cooc_id != token_id:
+                        # Sort the token IDs to ensure consistency (since ARTM co-occurrence data is symmetric).
+                        pair = tuple(sorted((token_id, cooc_id)))
+                        co_occurrences[pair] += 1
+
+        with open(cooc_path, 'w') as f:
+            for (word_id_1, word_id_2), count in co_occurrences.items():
+                f.write(f"{word_id_1} {word_id_2} {count}\n")
 
     @staticmethod
     def gen_vocab(docs) -> set:

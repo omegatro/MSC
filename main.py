@@ -3,7 +3,7 @@ import warnings
 import matplotlib
 
 from modules.input_parsing import CMDInterface as cmdi, ExternalLibConnector as elc, LocalLibConnector as llc, TextParser as tp
-from modules.config import argument_dict, API_KEY, LIB_ID, stemming_algorithm, extended_stopword_list, tokenizer_alg
+from modules.config import argument_dict, API_KEY, LIB_ID, stemming_algorithm, extended_stopword_list, tokenizer_alg, cooc_window_size
 from modules.preprocessing import PreProcessor as pp
 from modules.modeling import LatentDirichletAllocation as lda
 warnings.filterwarnings("ignore", category=matplotlib.MatplotlibDeprecationWarning)
@@ -54,10 +54,19 @@ def main():
     for doc in pdf_gen:
         docs.append(doc['result'])
         names.append(doc['name'])
-    pp.aggragate_tfs(output_path=args.o, n_gram_value=int(args.ng))
+    if args.tfp:
+        pp.aggragate_tfs(output_path=args.o, n_gram_value=int(args.ng))
     vocab = pp.gen_vocab(docs)
     bow_gen     = pp.bow_generator(docs, vocab=vocab)
     corpus      = [bow for bow in bow_gen]
+
+    pp.get_cooc_vocab(
+            docs=docs, 
+            vocab=vocab, 
+            vocab_path=os.path.join(args.o, f'vocab_{args.nt}.txt'), 
+            cooc_path=os.path.join(args.o,f'cooc_{args.nt}.txt'), 
+            window=cooc_window_size
+            )
 
     pp.save_corpus_to_vw(
         docs=docs,

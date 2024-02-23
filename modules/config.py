@@ -56,10 +56,11 @@ LIB_ID = 11755354
 BACKUP_PATH = './backup'
 
 #Preprocessing configurations
-stemming_algorithm = None #'Porter' Or Snowball
+stemming_algorithm = "Snowball" #'Porter' Or Snowball
 extended_stopword_list = ['from', 'subject', 'edu', 'etc', 'use','https', 'http','fig','zhang', 'ner', 
                           'liu', 'lee', 'yang','ing','chen', 'authors', 'journal', 'see', 'org', 'web', 'vol', 'zhou',
                           'zhao', 'title', 'url', 'cited', 'issue', 'chang', 'page', 'tags', 'zhu', 'crossref','doi', 'nature'
-                          'example', 'ncbi', 'table']
+                          'example', 'ncbi', 'table', 'etal']
 word_cloud_plots = False
 tokenizer_alg = 'nltk'
+cooc_window_size = 10
