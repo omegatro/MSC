@@ -114,7 +114,7 @@ class PreProcessor():
         if int(n) <=1:
             return [word for word in sum(pdf_dict.values(), [])]
         for k in pdf_dict:
-            pdf_dict[k] = ["_".join(ngram) for ngram in ngrams([wd for wd in pdf_dict[k]], n)]
+            pdf_dict[k] = ["_".join(ngram) for ngram in ngrams([wd for wd in pdf_dict[k]], n) if len(set(ngram)) > 1]
         return [word for word in sum(pdf_dict.values(), [])]
 
 

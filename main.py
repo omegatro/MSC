@@ -63,8 +63,8 @@ def main():
     pp.get_cooc_vocab(
             docs=docs, 
             vocab=vocab, 
-            vocab_path=os.path.join(args.o, f'vocab_{args.nt}.txt'), 
-            cooc_path=os.path.join(args.o,f'cooc_{args.nt}.txt'), 
+            vocab_path=os.path.join(args.o, f'vocab_{args.ng}.txt'), 
+            cooc_path=os.path.join(args.o,f'cooc_{args.ng}.txt'), 
             window=cooc_window_size
             )
 
