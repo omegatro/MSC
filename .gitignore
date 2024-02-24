@@ -7,4 +7,4 @@ models/*
 sandboxes/data/*
 sandboxes/bigartm.*
 sandboxes/.ipynb_checkpoints/*
-sandboxes/*batches*
+sandboxes/*batch*
