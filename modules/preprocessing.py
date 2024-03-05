@@ -67,12 +67,12 @@ class PreProcessor():
             pdf_dict[k] = re.sub("\s{2,}", " ", pdf_dict[k])
             if tokenizer == 'nltk':
                 pdf_dict[k] = nltk.word_tokenize(pdf_dict[k])
-                pdf_dict[k] = [word.lower() for word in pdf_dict[k] if word.isalpha() and max_dimer_freq(word.lower()) < 0.5 and pdf_dict[k].count(word) > 3 and pdf_dict[k].count(word) < 950]
+                pdf_dict[k] = [word.lower() for word in pdf_dict[k] if word.isalpha() and max_dimer_freq(word.lower()) < 0.3 and pdf_dict[k].count(word) > 3 and pdf_dict[k].count(word) < 950]
             elif tokenizer == 'spacy':
                 nlp = English()
                 tokenizer = nlp.tokenizer
                 pdf_dict[k] = tokenizer(pdf_dict[k])
-                pdf_dict[k] = [str(word).lower() for word in pdf_dict[k] if str(word).isalpha() and max_dimer_freq(word.lower()) < 0.5 and pdf_dict[k].count(word) > 3 and pdf_dict[k].count(word) < 950]
+                pdf_dict[k] = [str(word).lower() for word in pdf_dict[k] if str(word).isalpha() and max_dimer_freq(word.lower()) < 0.3 and pdf_dict[k].count(word) > 3 and pdf_dict[k].count(word) < 950]
         return pdf_dict
 
     

@@ -15,12 +15,12 @@ def main():
     '''Main method'''
     interface   = cmdi()
     args        = interface.parse_arguments(argument_dict)
-    if args.ul:
+    if args.l and args.ul:
         local_conn = llc()
         local_conn.connect_to_db()
         local_conn.query_local_zotero(collection_name=args.c)
         local_conn.get_local_copies(save_path=args.o)
-    else:
+    elif args.l:
         #downloading from Zotero api and scraping available full-text pdfs
         zc          = elc.connect_zotero(
             library_id=LIB_ID, 

@@ -18,11 +18,12 @@ config_vars
 argument_dict = {
                 'description':'This is a command-line interface to interact with the MSC project.',
                 'required_arguments':[
-                    ['--l','--library_name','Name of the Zotero library to parse.'],
+                    
                     ['--o','--output_path','Full path to the folder where the downloaded files should be saved.'],
                 ],
                 'optional':{
                     'arguments':[
+                        ['--l','--library_name','Name of the Zotero library to parse.', None],
                         ['--mr', '--run_model', 'Name of the model to run. Currently only gensim lda supported', 'lda_gensim'],
                         ['--nt', '--num_topics', 'Number of topics to be discovered by the topic model.', 3],
                         ['--c','--collection_name','Name of the collection to parse', None],
@@ -59,8 +60,9 @@ BACKUP_PATH = './backup'
 stemming_algorithm = None #'Porter' Or Snowball
 extended_stopword_list = ['from', 'subject', 'edu', 'etc', 'use','https', 'http','fig','zhang', 'ner', 
                           'liu', 'lee', 'yang','ing','chen', 'authors', 'journal', 'see', 'org', 'web', 'vol', 'zhou',
-                          'zhao', 'title', 'url', 'cited', 'issue', 'chang', 'page', 'tags', 'zhu', 'crossref','doi', 'nature'
-                          'example', 'ncbi', 'table', 'etal']
+                          'zhao', 'title', 'url', 'cited', 'issue', 'chang', 'page', 'tags', 'zhu', 'crossref','doi', 'nature',
+                          'example', 'ncbi', 'table', 'etal','hours', 'list', 'assessment', 'sit', 'resit', 'reading', 'first', 
+                          'proquest', 'weighting', 'obligatoryfinalgroup','work', 'elementselement', 'description', 'course', 'examination']
 word_cloud_plots = False
 tokenizer_alg = 'nltk'
 cooc_window_size = 10
