@@ -3,7 +3,7 @@ import warnings
 import matplotlib
 
 from modules.input_parsing import CMDInterface as cmdi, ExternalLibConnector as elc, LocalLibConnector as llc, TextParser as tp
-from modules.config import argument_dict, API_KEY, LIB_ID, stemming_algorithm, extended_stopword_list, tokenizer_alg, cooc_window_size
+from modules.config import argument_dict, API_KEY, LIB_ID, stemming_algorithm, extended_stopword_list, tokenizer_alg, cooc_window_size, upper_freq_th, lower_freq_th
 from modules.preprocessing import PreProcessor as pp
 from modules.modeling import LatentDirichletAllocation as lda
 warnings.filterwarnings("ignore", category=matplotlib.MatplotlibDeprecationWarning)
@@ -15,12 +15,12 @@ def main():
     '''Main method'''
     interface   = cmdi()
     args        = interface.parse_arguments(argument_dict)
-    if args.l and args.ul:
+    if args.ul:
         local_conn = llc()
         local_conn.connect_to_db()
         local_conn.query_local_zotero(collection_name=args.c)
         local_conn.get_local_copies(save_path=args.o)
-    elif args.l:
+    else:
         #downloading from Zotero api and scraping available full-text pdfs
         zc          = elc.connect_zotero(
             library_id=LIB_ID, 
@@ -48,7 +48,9 @@ def main():
                                            n_gram_value=int(args.ng),
                                            wordclouds=args.wc,
                                            tf_plots=args.tfp,
-                                           tokenizer=tokenizer_alg
+                                           tokenizer=tokenizer_alg,
+                                           lower_fth=lower_freq_th,
+                                           upper_fth=upper_freq_th
                                            )
     docs,names = [],[]
     for doc in pdf_gen:

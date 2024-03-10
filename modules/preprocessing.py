@@ -67,12 +67,12 @@ class PreProcessor():
             pdf_dict[k] = re.sub("\s{2,}", " ", pdf_dict[k])
             if tokenizer == 'nltk':
                 pdf_dict[k] = nltk.word_tokenize(pdf_dict[k])
-                pdf_dict[k] = [word.lower() for word in pdf_dict[k] if word.isalpha() and max_dimer_freq(word.lower()) < 0.3 and pdf_dict[k].count(word) > 3 and pdf_dict[k].count(word) < 950]
+                pdf_dict[k] = [word.lower() for word in pdf_dict[k] if word.isalpha() and max_dimer_freq(word.lower()) < 0.5]
             elif tokenizer == 'spacy':
                 nlp = English()
                 tokenizer = nlp.tokenizer
                 pdf_dict[k] = tokenizer(pdf_dict[k])
-                pdf_dict[k] = [str(word).lower() for word in pdf_dict[k] if str(word).isalpha() and max_dimer_freq(word.lower()) < 0.3 and pdf_dict[k].count(word) > 3 and pdf_dict[k].count(word) < 950]
+                pdf_dict[k] = [str(word).lower() for word in pdf_dict[k] if str(word).isalpha() and max_dimer_freq(word.lower()) < 0.5]
         return pdf_dict
 
     
@@ -110,12 +110,16 @@ class PreProcessor():
     
 
     @staticmethod
-    def generate_ngrams(pdf_dict:dict, n:int=2) -> list:
+    def generate_ngrams(pdf_dict:dict, n:int=2, upper_th=950, lower_th=3) -> list:
         if int(n) <=1:
             return [word for word in sum(pdf_dict.values(), [])]
         for k in pdf_dict:
             pdf_dict[k] = ["_".join(ngram) for ngram in ngrams([wd for wd in pdf_dict[k]], n) if len(set(ngram)) > 1]
-        return [word for word in sum(pdf_dict.values(), [])]
+
+        #Filter words with frequency above threshold in the entire collection
+        collection = [word for word in sum(pdf_dict.values(), [])]
+        collection = [word for word in collection if collection.count(word) < upper_th and collection.count(word) > lower_th]
+        return collection
 
 
     @staticmethod
@@ -259,14 +263,26 @@ class PreProcessor():
         
 
     @staticmethod
-    def preprocess_document(pdf_dict, file_name, image_path:str=None, stemming_alg:str='Porter', ext_stopword_list:list=[], n_gram_value:int=1, wordclouds=False, tf_plots=False, tokenizer='nltk') -> dict:
+    def preprocess_document(
+        pdf_dict, 
+        file_name, 
+        image_path:str=None, 
+        stemming_alg:str='Porter', 
+        ext_stopword_list:list=[], 
+        n_gram_value:int=1, 
+        wordclouds=False, 
+        tf_plots=False, 
+        tokenizer='nltk',
+        upper_fth=6e23,
+        lower_fth=0,
+        ) -> dict:
         '''
         Combining pre-processing into single method for convenience.
         '''
         pdf_dict = PreProcessor.clear_text_case_punct(pdf_dict, tokenizer=tokenizer)
         pdf_dict = PreProcessor.remove_stopwords(pdf_dict, extended_list=ext_stopword_list)
         pdf_dict = PreProcessor.stemming(pdf_dict, algorithm=stemming_alg)
-        pdf_list = PreProcessor.generate_ngrams(pdf_dict, n=n_gram_value)
+        pdf_list = PreProcessor.generate_ngrams(pdf_dict, n=n_gram_value, upper_th=upper_fth, lower_th=lower_fth)
 
         fname = str(os.path.basename(file_name).replace('.pdf',''))
         wordcloud_path = os.path.join(image_path, fname) + f'{n_gram_value}.png'
@@ -280,7 +296,17 @@ class PreProcessor():
 
 
     @staticmethod
-    def preprocess_generator(pdf_generator, output_path:str=None, stemming_alg:str='Porter', ext_stopword_list:list=[], n_gram_value:int=1, wordclouds=False, tf_plots=False, tokenizer='nltk'):
+    def preprocess_generator(
+        pdf_generator, 
+        output_path:str=None, 
+        stemming_alg:str='Porter', 
+        ext_stopword_list:list=[], 
+        n_gram_value:int=1, 
+        wordclouds=False, 
+        tf_plots=False, 
+        tokenizer='nltk',
+        lower_fth=0,
+        upper_fth=6e23):
         '''Preprocessing wrapper for pdf generator'''
         os.makedirs(output_path, exist_ok=True)
         logging.info('Starting preprocessing.')
@@ -298,7 +324,9 @@ class PreProcessor():
                 n_gram_value=n_gram_value,
                 wordclouds=wordclouds,
                 tf_plots=tf_plots,
-                tokenizer=tokenizer
+                tokenizer=tokenizer,
+                lower_fth=lower_fth,
+                upper_fth=upper_fth
                 )}
 
 
