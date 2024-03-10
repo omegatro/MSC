@@ -142,8 +142,8 @@ class PreProcessor():
         if len(doc) > 0:
             for wd in doc:
                 vw_line += f" {wd}"
-        # Write the formatted line to the VW file
-        vw_file.write(vw_line + "\n")
+            # Write the formatted line to the VW file if it is not empty
+            vw_file.write(vw_line + "\n")
 
     @staticmethod
     def get_cooc_vocab(docs, vocab, vocab_path, cooc_path, window=10)-> None:
