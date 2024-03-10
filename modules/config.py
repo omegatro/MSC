@@ -63,4 +63,6 @@ extended_stopword_list = ['from', 'subject', 'edu', 'etc', 'use','https', 'http'
                           'example', 'ncbi', 'table', 'etal']
 word_cloud_plots = False
 tokenizer_alg = 'nltk'
+lower_freq_th = 3
+upper_freq_th = 950
 cooc_window_size = 10
