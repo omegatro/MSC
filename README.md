@@ -22,9 +22,9 @@ options:
   --l, --library_name
                         Name of the Zotero library to parse.
   --c, --collection_name
-                        Name of the collection to parse
+                        Name of the Zotero collection to parse
   --m, --model_file_name
-                        Name of model to name the files.
+                        Name of model to name the files (required for compatibility with genism LDA module)
   --ng, --nram_len  Length of the n-gram
   --ul, --use_local     Flag to analyze locally-stored copies of publications instead of downloading from links.
   --sm, --skip_model    Flag to skip LDA topic modelling
