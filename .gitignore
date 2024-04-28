@@ -8,3 +8,4 @@ sandboxes/data/*
 sandboxes/bigartm.*
 sandboxes/.ipynb_checkpoints/*
 sandboxes/*batch*
+*zip
