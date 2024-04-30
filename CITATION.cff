@@ -1,0 +1,31 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: BIOIT_hARTM
+message: >-
+  If you use this dataset, please cite it using the metadata
+  from this file.
+type: dataset
+authors:
+  - {}
+  - given-names: Jevgenijs
+    family-names: Bodrenko
+    email: omegatro@gmail.com
+    orcid: 'https://orcid.org/0009-0007-7085-7762'
+repository-code: 'https://github.com/omegatro/MSC/'
+abstract: >-
+  This repository contains the code developed as a part of work on the following thesis: 
+  "UNSUPERVISED MACHINE LEARNING APPROACH FOR HIERARCHICAL GRAPH-BASED REPRESENTATION OF NATURAL LANGUAGE TEXT COLLECTIONS"
+  It consists of python scripts for data preprocessing, as well as jupyter notebooks outlining the learning process and summarizing final results.
+  The datasets contain a selection of tokenized full-text articles.
+  BIOIT dataset covers a variety of bioinformatics topics, including
+  single cell data analysis, variant calling, genome  assembly and antimicrobial surveillance. 
+  NLP dataset covers a variety of natural language processing topics, including
+  data preparation techniques, topic modelling, document clustering methods, deep learning methods and large language models. 
+
+  Each dataset contains
+   - Unigram total frequency (files with tf_1.csv suffix).
+   - Bigram-based representation for each document in Vowpal-Wabbit format (files with _vw.txt suffix).
+   - Bigram co-occurrence count dictionary used for coherence calculations (cooc_2.txt).
+   - Vocabulary of unique bigrams for each dataset (vocab_2.txt).
