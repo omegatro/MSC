@@ -2,7 +2,7 @@
 # Visit https://bit.ly/cffinit to generate yours today!
 
 cff-version: 1.2.0
-title: GhARTM
+title: hARTM dataset for Master Thesis
 message: >-
   If you use this dataset, please cite it using the metadata
   from this file.
@@ -15,7 +15,7 @@ authors:
 repository-code: 'https://github.com/omegatro/MSC/'
 abstract: >-
   This repository contains the code developed as a part of work on the following thesis: 
-  "UNSUPERVISED MACHINE LEARNING APPROACH FOR HIERARCHICAL GRAPH-BASED REPRESENTATION OF NATURAL LANGUAGE TEXT COLLECTIONS"
+  
   It consists of python scripts for data preprocessing, as well as jupyter notebooks outlining the learning process and summarizing final results.
   The datasets contain a selection of tokenized full-text articles.
   BIOIT dataset covers a variety of bioinformatics topics, including
