@@ -49,5 +49,5 @@ python main.py --l 'My Library' --o ./Data/bioit_set/ --c 'Bioinformatics set' -
    - Each dataset contains:
       - Unigram total frequency for each dataset (files with tf_1.csv suffix).
       - Bigram-based representation for each document in Vowpal-Wabbit format (files with _vw.txt suffix).
-      - Bigram coocurrence count dictionary used for coherence calculations (cooc_2.txt).
+      - Bigram co-occurrence count dictionary used for coherence calculations (cooc_2.txt).
       - Vocabulary of unique bigrams for each dataset (vocab_2.txt).
