@@ -1,0 +1,27 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: NLP_hARTM
+message: >-
+  If you use this dataset, please cite it using the metadata
+  from this file.
+type: dataset
+authors:
+  - {}
+  - given-names: Jevgenijs
+    family-names: Bodrenko
+    email: omegatro@gmail.com
+    orcid: 'https://orcid.org/0009-0007-7085-7762'
+repository-code: 'https://github.com/omegatro/MSC/'
+abstract: >-
+  The dataset contains a selection of tokenized full-text
+  articles on a variety of natural language processing topics,
+  including preprocessing method, topic modelling, document clustering method,
+  deep learning methods and large language models.
+
+  Components:
+   - Unigram total frequency (files with tf_1.csv suffix).
+   - Bigram-based representation for each document in Vowpal-Wabbit format (files with _vw.txt suffix).
+   - Bigram co-occurrence count dictionary used for coherence calculations (cooc_2.txt).
+   - Vocabulary of unique bigrams for each dataset (vocab_2.txt).
