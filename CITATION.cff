@@ -22,9 +22,5 @@ abstract: >-
   single cell data analysis, variant calling, genome  assembly and antimicrobial surveillance. 
   NLP dataset covers a variety of natural language processing topics, including
   data preparation techniques, topic modelling, document clustering methods, deep learning methods and large language models. 
-
-  Each dataset contains
-   - Unigram total frequency (files with tf_1.csv suffix).
-   - Bigram-based representation for each document in Vowpal-Wabbit format (files with _vw.txt suffix).
-   - Bigram co-occurrence count dictionary used for coherence calculations (cooc_2.txt).
-   - Vocabulary of unique bigrams for each dataset (vocab_2.txt).
+  Each dataset contains Unigram total frequency (files with tf_1.csv suffix); Bigram-based representation for each document in Vowpal-Wabbit format (files with _vw.txt suffix)
+  Bigram co-occurrence count dictionary used for coherence calculations (cooc_2.txt); Vocabulary of unique bigrams for each dataset (vocab_2.txt).
