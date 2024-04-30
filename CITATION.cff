@@ -8,7 +8,6 @@ message: >-
   from this file.
 type: dataset
 authors:
-  - {}
   - given-names: Jevgenijs
     family-names: Bodrenko
     email: omegatro@gmail.com
