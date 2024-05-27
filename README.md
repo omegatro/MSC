@@ -14,6 +14,13 @@ It consists of python scripts for data preprocessing, as well as jupyter noteboo
 git clone https://github.com/omegatro/MSC
 cd <path_to_MSC_folder>/MSC/
 conda env create -f msc_project_env.yaml
+mkdir backup
+touch .secrets #API key goes here
+python -c """
+import nltk
+nltk.download('stopwords')
+nltk.download('punkt')
+"""
 ```
 - Command-line interface for preprocessing
 ```
@@ -37,7 +44,7 @@ Required arguments:
 ```
 - Command example:
 ```
-python main.py --l 'My Library' --o ./Data/bioit_set/ --c 'Bioinformatics set' --m nlp_set_1 --sm --ng 1 --ul
+python main.py --l 'My Library' --o ./Data/bioit_set/ --c 'Bioinformatics set' --m bioit_set_1 --sm --ng 1
 ```
 - Results
    - [Visual results](https://github.com/omegatro/MSC/blob/main/results/Final_results.ipynb) include hARTM topic models and plots generated based on those models.
