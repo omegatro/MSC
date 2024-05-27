@@ -7,6 +7,7 @@ It consists of python scripts for data preprocessing, as well as jupyter noteboo
 - Prerequisites
    - [Anaconda](https://www.anaconda.com/download)
    - [WSL2](https://learn.microsoft.com/en-us/windows/wsl/install)
+   - [Jupyter](https://jupyter.org/install) under WSL2 or [Colab](https://colab.research.google.com/)
    - [Zotero](https://www.zotero.org/download/)
    - [Zotero private API key](https://www.zotero.org/settings/keys) available in ```<path_to_MSC_folder>/MSC/.secrets``` file
 - Installation
